@@ -29,4 +29,3 @@ class DataManagerInterface(ABC):
     @abstractmethod
     def update_movie(self, movie_id, updated_details):
         pass
-"""

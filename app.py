@@ -14,12 +14,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 data_manager = SQLiteDataManager(app)
 
 
-
-
 @app.route('/users')
-def show_users():
+def list_users():
     """
-    Route to display all users.
+    Fetches all users and renders the users list page.
     """
     users = data_manager.get_all_users()
     return render_template('users.html', users=users)
