@@ -59,6 +59,22 @@ def user_movies(user_id):
     return render_template('user_movies.html', user=user, movies=movies)
 
 
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    """
+    Route to delete a user.
+    Deletes the user with the given ID and redirects to the users list page.
+    """
+    result = data_manager.delete_user(user_id)
+
+    if 'error' in result:
+        flash(result['error'], 'error')
+    else:
+        flash(result['success'], 'success')
+
+    return redirect(url_for('list_users'))
+
+
 @app.route('/users/<int:user_id>/update_movie/<int:movie_id>')
 def update_movie(user_id, movie_id):
     """

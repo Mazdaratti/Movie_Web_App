@@ -80,6 +80,7 @@ class SQLiteDataManager(DataManagerInterface):
 
             return {"success": f"User with ID {user_id} and all associated data have been deleted successfully"}
         except Exception as e:
+            self.db.session.rollback()  # Rollback any pending changes in case of error
             return {"error": f"An error occurred while deleting the user: {str(e)}"}
 
     def get_user_movies(self, user_id):
