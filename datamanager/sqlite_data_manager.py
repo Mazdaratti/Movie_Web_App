@@ -26,6 +26,15 @@ class SQLiteDataManager(DataManagerInterface):
         """
         return User.query.all()
 
+    def get_user_by_id(self, user_id):
+        """
+        Fetches a user by their ID from the database.
+
+        :param user_id: ID of the user to fetch.
+        :return: User object if found, else None.
+        """
+        return User.query.get(user_id)
+
     def add_user(self, user_name):
         """
         Adds a new user to the database if the user does not already exist.
