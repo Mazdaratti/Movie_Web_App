@@ -7,6 +7,10 @@ class DataManagerInterface(ABC):
         pass
 
     @abstractmethod
+    def get_user_by_id(self, user_id):
+        pass
+
+    @abstractmethod
     def get_user_movies(self, user_id):
         pass
 
