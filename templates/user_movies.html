@@ -1,0 +1,32 @@
+<!-- templates/user_movies.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.name }}'s Movies - MovieWeb App</title>
+</head>
+<body>
+    <h1>{{ user.name }}'s Favorite Movies</h1>
+
+    <h2>Movies</h2>
+    {% if movies %}
+        <ul>
+        {% for movie in movies %}
+            <li>
+                <strong>{{ movie.name }}</strong> ({{ movie.year }}) - Directed by {{ movie.director }} - Rating: {{ movie.rating }}
+                <a href="{{ url_for('update_movie', user_id=user.id, movie_id=movie.id) }}">Edit</a> |
+                <a href="{{ url_for('delete_movie', user_id=user.id, movie_id=movie.id) }}">Delete</a>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>{{ user.name }} has no favorite movies.</p>
+    {% endif %}
+
+    <a href="{{ url_for('add_movie', user_id=user.id) }}">Add New Movie</a>
+    <br><br>
+    <a href="{{ url_for('list_users') }}">Back to Users List</a>
+</body>
+</html>
+
