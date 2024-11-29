@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Movie - MovieWeb App</title>
+</head>
+<body>
+    <h1>Add Movie to Your List</h1>
+
+    <!-- Flash messages for success or error -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Movie form -->
+    <form method="post" action="{{ url_for('add_movie', user_id=user_id) }}">
+        <label for="movie_name">Movie Name:</label><br>
+        <input type="text" id="movie_name" name="movie_name" required><br><br>
+        <button type="submit">Add Movie</button>
+    </form>
+
+    <!-- Back to user's movie list -->
+    <p>
+        <a href="{{ url_for('user_movies', user_id=user_id) }}">Back to Movie List</a>
+    </p>
+</body>
+</html>
