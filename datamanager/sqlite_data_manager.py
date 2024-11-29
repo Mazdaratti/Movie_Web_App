@@ -1,5 +1,6 @@
 from datamanager.data_manager import DataManagerInterface
 from datamanager.models import db, User, Movie, UserMovies
+from datamanager.movie_fetcher import MovieInfoDownloader, APIError
 
 
 class SQLiteDataManager(DataManagerInterface):
@@ -67,7 +68,7 @@ class SQLiteDataManager(DataManagerInterface):
         """
         try:
             # Fetch the user by ID
-            user = User.query.get(user_id)
+            user = self.get_user_by_id(user_id)
             if not user:
                 return {"error": f"User with ID {user_id} not found"}
 
@@ -93,40 +94,54 @@ class SQLiteDataManager(DataManagerInterface):
         user_movies = self.db.session.query(Movie).join(UserMovies).filter(UserMovies.user_id == user_id).all()
         return user_movies
 
-    def add_movie(self, user_id, movie_details):
+    def add_movie(self, user_id, movie_name):
         """
-        Adds a movie to a specific user's collection if the movie does not already exist for that user.
+        Adds a movie to a specific user's collection. If the movie doesn't exist, fetches it from OMDb.
 
         :param user_id: The ID of the user.
-        :param movie_details: A dictionary containing movie information (name, director, year, rating).
+        :param movie_name: A dictionary containing movie information (name, director, year, rating).
         :return: A dictionary containing a success or error message.
         """
         try:
-            # Check if the movie already exists based on name and year
+            # Check if the movie already exists in the database based on both title and year
             existing_movie = Movie.query.filter_by(
-                name=movie_details['name'], year=movie_details['year']).first()
-
+                name=movie_name).first()
+            user = self.get_user_by_id(user_id)
             if existing_movie:
                 # Check if the movie is already associated with the user
                 existing_user_movie = UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first()
                 if existing_user_movie:
                     return {
-                        "error": f"User '{user_id}' already has the movie '{movie_details['name']}' ({movie_details['year']})."}
+                        "error": f"User '{user.name}' already has the movie '{movie_name}'."}
+                else:
+                    # Associate the movie with the user
+                    association = UserMovies(user_id=user_id, movie_id=existing_movie.id)
+                    self.db.session.add(association)
+                    self.db.session.commit()
+                    return {
+                        "success": f"Movie '{movie_name}' was successfully added to user '{user.name}'."}
             else:
-                # If movie does not exist, create it
-                new_movie = Movie(**movie_details)
+                # If movie doesn't exist in the database, fetch data from OMDb
+                movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
+                # Create and add the new movie to the database
+                new_movie = Movie(**movie_data)
                 self.db.session.add(new_movie)
                 self.db.session.commit()
 
-            # Associate the movie with the user
-            association = UserMovies(user_id=user_id, movie_id=new_movie.id)
-            self.db.session.add(association)
-            self.db.session.commit()
+                # Now associate the new movie with the user
+                association = UserMovies(user_id=user_id, movie_id=new_movie.id)
+                self.db.session.add(association)
+                self.db.session.commit()
 
-            return {
-                "success": f"Movie '{movie_details['name']}' ({movie_details['year']}) was successfully added to user '{user_id}'."}
+                return {
+                    "success": f"Movie '{movie_data['name']}' "
+                               f"was successfully added to user '{user.name}'."}
 
+        except APIError as e:
+            # Handle errors during the movie data fetch
+            return {"error": f"Failed to fetch movie data: {str(e)}"}
         except Exception as e:
+            # Handle other errors
             return {"error": f"An error occurred: {str(e)}"}
 
     def update_movie(self, movie_id, updated_details):
