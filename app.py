@@ -75,6 +75,33 @@ def delete_user(user_id):
     return redirect(url_for('list_users'))
 
 
+@app.route('/users/<int:user_id>/add_movie', methods=['GET', 'POST'])
+def add_movie(user_id):
+    if request.method == 'POST':
+        movie_name = request.form.get('movie_name')
+
+        if not movie_name:
+            flash("Movie name is required!", "error")
+            return redirect(url_for('add_movie', user_id=user_id))
+
+        try:
+            # Add the movie to the user's collection
+            result = data_manager.add_movie(user_id, movie_name)
+
+            # Flash the appropriate message
+            if 'error' in result:
+                flash(result['error'], 'error')
+            else:
+                flash(result['success'], 'success')
+
+        except Exception as e:
+            flash(f"An error occurred while adding the movie: {str(e)}", "error")
+            return redirect(url_for('add_movie', user_id=user_id))
+
+    # GET request renders the movie addition form
+    return render_template('add_movie.html', user_id=user_id)
+
+
 @app.route('/users/<int:user_id>/update_movie/<int:movie_id>')
 def update_movie(user_id, movie_id):
     """
@@ -89,14 +116,6 @@ def delete_movie(user_id, movie_id):
     Temporary route to avoid errors, redirecting or displaying a dummy message.
     """
     return f"Delete movie {movie_id} for user {user_id} (this is a placeholder route)."
-
-
-@app.route('/users/<int:user_id>/add_movie')
-def add_movie(user_id):
-    """
-    Temporary route to avoid errors, redirecting or displaying a dummy message.
-    """
-    return f"Add movie for user {user_id} (this is a placeholder route)."
 
 
 if __name__ == "__main__":
