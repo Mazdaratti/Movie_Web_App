@@ -94,6 +94,15 @@ class SQLiteDataManager(DataManagerInterface):
         user_movies = self.db.session.query(Movie).join(UserMovies).filter(UserMovies.user_id == user_id).all()
         return user_movies
 
+    def get_movie_by_id(self, movie_id):
+        """
+        Fetches a movie by their ID from the database.
+
+        :param movie_id: ID of the movie to fetch.
+        :return: Movie object if found, else None.
+        """
+        return Movie.query.get(movie_id)
+
     def add_movie(self, user_id, movie_name):
         """
         Adds a movie to a specific user's collection. If the movie doesn't exist, fetches it from OMDb.
