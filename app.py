@@ -52,8 +52,8 @@ def user_movies(user_id):
     user = data_manager.get_user_by_id(user_id)  # Fetch the user by ID
 
     if not user:
-        return render_template('error.html',
-                               error_message=f"User with ID {user_id} not found.")
+        flash(f"User with ID {user_id} not found.", "error")
+        return redirect(url_for('list_users'))
 
     movies = data_manager.get_user_movies(user_id)  # Fetch the user's movies
     return render_template('user_movies.html', user=user, movies=movies)
@@ -85,10 +85,8 @@ def add_movie(user_id):
             return redirect(url_for('add_movie', user_id=user_id))
 
         try:
-            # Add the movie to the user's collection
             result = data_manager.add_movie(user_id, movie_name)
 
-            # Flash the appropriate message
             if 'error' in result:
                 flash(result['error'], 'error')
             else:
@@ -98,16 +96,37 @@ def add_movie(user_id):
             flash(f"An error occurred while adding the movie: {str(e)}", "error")
             return redirect(url_for('add_movie', user_id=user_id))
 
-    # GET request renders the movie addition form
     return render_template('add_movie.html', user_id=user_id)
 
 
-@app.route('/users/<int:user_id>/update_movie/<int:movie_id>')
+@app.route('/users/<int:user_id>/update_movie/<int:movie_id>', methods=['GET', 'POST'])
 def update_movie(user_id, movie_id):
     """
-    Temporary route to avoid errors, redirecting or displaying a dummy message.
+    Route to update a movie's details.
+
+    - GET: Display a form pre-filled with the current movie details.
+    - POST: Update the movie details based on submitted form data.
+
+    :param user_id: ID of the user who owns the movie.
+    :param movie_id: ID of the movie to be updated.
+    :return: Rendered template for GET, or a redirect/flash message for POST.
     """
-    return f"Update movie {movie_id} for user {user_id} (this is a placeholder route)."
+    movie = data_manager.get_movie_by_id(movie_id)
+
+    if not movie:
+        flash(f"Movie with ID {movie_id} not found.", "error")
+        return redirect(url_for('user_movies', user_id=user_id))
+    if request.method == 'POST':
+        updated_details = request.form.to_dict()
+
+        result = data_manager.update_movie(movie_id, updated_details)
+        if "success" in result:
+            flash(result['success'], "success")
+            return redirect(url_for('user_movies', user_id=user_id))
+        else:
+            flash(result['error'], "error")
+
+    return render_template('update_movie.html', user_id=user_id, movie=movie)
 
 
 @app.route('/users/<int:user_id>/delete_movie/<int:movie_id>')
