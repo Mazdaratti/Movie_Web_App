@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Movie - MovieWeb App</title>
+</head>
+<body>
+    <h1>Update Movie Details</h1>
+
+    <!-- Flash messages for success or error -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Movie update form -->
+    <form method="post" action="{{ url_for('update_movie', user_id=user_id, movie_id=movie.id) }}">
+        <label for="movie_name">Movie Name:</label><br>
+        <input type="text" id="movie_name" name="name" value="{{ movie.name }}" required><br><br>
+
+        <label for="movie_director">Director:</label><br>
+        <input type="text" id="movie_director" name="director" value="{{ movie.director if movie.director else 'Unknown' }}" required><br><br>
+
+        <label for="movie_year">Year:</label><br>
+        <input type="number" id="movie_year" name="year" value="{{ movie.year if movie.year}}" required><br><br>
+
+        <label for="movie_rating">Rating:</label><br>
+        <input type="number" id="movie_rating" name="rating" step="0.1" min="0" max="10" value="{{ movie.rating }}" required><br><br>
+
+        <label for="movie_notes">Notes:</label><br>
+        <textarea id="movie_notes" name="notes">{{ movie.notes }}</textarea><br><br>
+
+        <button type="submit">Update Movie</button>
+    </form>
+
+    <!-- Back to user's movie list -->
+    <p>
+        <a href="{{ url_for('user_movies', user_id=user_id) }}">Back to Movie List</a>
+    </p>
+</body>
+</html>
