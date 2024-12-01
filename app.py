@@ -1,8 +1,10 @@
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, redirect, flash, request, url_for
 from datamanager.sqlite_data_manager import SQLiteDataManager
 from storage import PATH
-from datamanager.models import db
+
 
 # Create the Flask app
 app = Flask(__name__)
@@ -14,6 +16,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the SQLiteDataManager
 data_manager = SQLiteDataManager(app)
+
+# Configure logging
+handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
+handler.setLevel(logging.ERROR)
+app.logger.addHandler(handler)
 
 
 @app.route('/users')
@@ -52,8 +59,8 @@ def user_movies(user_id):
     user = data_manager.get_user_by_id(user_id)  # Fetch the user by ID
 
     if not user:
-        flash(f"User with ID {user_id} not found.", "error")
-        return redirect(url_for('list_users'))
+        return render_template('error.html',
+                               error_message=f"User with ID {user_id} not found."), 404
 
     movies = data_manager.get_user_movies(user_id)  # Fetch the user's movies
     return render_template('user_movies.html', user=user, movies=movies)
@@ -68,7 +75,7 @@ def delete_user(user_id):
     result = data_manager.delete_user(user_id)
 
     if 'error' in result:
-        flash(result['error'], 'error')
+        return render_template("error.html", error_message=result["error"]), 404
     else:
         flash(result['success'], 'success')
 
@@ -91,10 +98,12 @@ def add_movie(user_id):
                 flash(result['error'], 'error')
             else:
                 flash(result['success'], 'success')
-
+        except KeyError as e:
+            flash(f"Missing data: {str(e)}", "error")
+            return render_template('error.html', error_message="Invalid data submitted.")
         except Exception as e:
-            flash(f"An error occurred while adding the movie: {str(e)}", "error")
-            return redirect(url_for('add_movie', user_id=user_id))
+            app.logger.error(f"Error in add_movie route: {e}")
+            return render_template('500.html'), 500
 
     return render_template('add_movie.html', user_id=user_id)
 
@@ -111,30 +120,69 @@ def update_movie(user_id, movie_id):
     :param movie_id: ID of the movie to be updated.
     :return: Rendered template for GET, or a redirect/flash message for POST.
     """
-    movie = data_manager.get_movie_by_id(movie_id)
+    try:
+        movie = data_manager.get_movie_by_id(movie_id)
+        if not movie:
+            return render_template('404.html'), 404
 
-    if not movie:
-        flash(f"Movie with ID {movie_id} not found.", "error")
-        return redirect(url_for('user_movies', user_id=user_id))
-    if request.method == 'POST':
-        updated_details = request.form.to_dict()
+        if request.method == 'POST':
+            updated_details = request.form.to_dict()
+            result = data_manager.update_movie(movie_id, updated_details)
 
-        result = data_manager.update_movie(movie_id, updated_details)
+            if "success" in result:
+                flash(result['success'], "success")
+                return redirect(url_for('user_movies', user_id=user_id))
+            else:
+                flash(result['error'], "error")
+
+        return render_template('update_movie.html', movie=movie)
+
+    except KeyError as e:
+        flash(f"Invalid form data: {str(e)}", "error")
+        return render_template('error.html', error_message="Invalid data submitted.")
+    except Exception as e:
+        app.logger.error(f"Error in update_movie route: {e}")
+        return render_template('500.html'), 500
+
+
+@app.route('/users/<user_id>/delete_movie/<movie_id>', methods=['POST'])
+def delete_movie(user_id, movie_id):
+    """
+    Route to delete a movie.
+    Deletes the movie with the given ID and redirects to the users list page.
+    """
+    try:
+        result = data_manager.delete_movie(movie_id, user_id)
+
         if "success" in result:
             flash(result['success'], "success")
             return redirect(url_for('user_movies', user_id=user_id))
         else:
             flash(result['error'], "error")
+            return render_template('error.html', error_message=result['error'])
 
-    return render_template('update_movie.html', user_id=user_id, movie=movie)
+    except Exception as e:
+        app.logger.error(f"Error in delete_movie route: {e}")
+        return render_template('500.html'), 500
 
 
-@app.route('/users/<int:user_id>/delete_movie/<int:movie_id>')
-def delete_movie(user_id, movie_id):
+@app.errorhandler(404)
+def page_not_found(e):
     """
-    Temporary route to avoid errors, redirecting or displaying a dummy message.
+    Handles 404 Not Found errors.
+    Renders a custom 404 error page.
     """
-    return f"Delete movie {movie_id} for user {user_id} (this is a placeholder route)."
+    return render_template('404.html', error_message="Page not found."), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """
+    Handles 500 Internal Server Error.
+    Renders a custom 500 error page.
+    """
+    app.logger.error(f"Server Error: {e}")
+    return render_template('500.html', error_message="Something went wrong on our end."), 500
 
 
 if __name__ == "__main__":

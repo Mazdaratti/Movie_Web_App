@@ -182,7 +182,7 @@ class SQLiteDataManager(DataManagerInterface):
         except Exception as e:
             return {"error": f"An error occurred while updating the movie: {str(e)}"}
 
-    def delete_movie(self, movie_id, user_id):
+    def delete_movie(self, user_id, movie_id):
         """
         Deletes the association of a movie with a user. If the movie is no longer associated with any users,
         the movie will be deleted.
@@ -192,7 +192,10 @@ class SQLiteDataManager(DataManagerInterface):
         :return: A dictionary containing success or error message.
         """
         try:
-            # Check if the movie exists in the database
+            user = User.query.get(user_id)
+            if not user:
+                return {"error": f"User with ID {user_id} does not exist."}
+
             movie = Movie.query.get(movie_id)
             if not movie:
                 return {"error": f"Movie with ID {movie_id} does not exist."}
@@ -212,7 +215,7 @@ class SQLiteDataManager(DataManagerInterface):
                 return {"success": f"Movie '{movie.name}' has been successfully removed from your list."}
 
             else:
-                return {"error": "No association found between the user and the movie."}
+                return {"error": "This movie is not in your list."}
 
         except Exception as e:
             return {"error": f"An error occurred: {str(e)}"}
