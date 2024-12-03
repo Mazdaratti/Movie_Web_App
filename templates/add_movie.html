@@ -1,34 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Movie - MovieWeb App</title>
-</head>
-<body>
-    <h1>Add Movie to Your List</h1>
+{% extends "base.html" %}
 
-    <!-- Flash messages for success or error -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul>
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+{% block title %}Add Movie - MovieWeb App{% endblock %}
+
+{% block content %}
+<div class="mt-4">
+    <h1 class="mb-4">Add Movie to Your List</h1>
 
     <!-- Movie form -->
-    <form method="post" action="{{ url_for('add_movie', user_id=user_id) }}">
-        <label for="movie_name">Movie Name:</label><br>
-        <input type="text" id="movie_name" name="movie_name" required><br><br>
-        <button type="submit">Add Movie</button>
+    <form method="post" action="{{ url_for('add_movie', user_id=user_id) }}" class="needs-validation" novalidate>
+        <div class="form-group">
+            <label for="movie_name" class="form-label">Movie Name:</label>
+            <input
+                type="text"
+                id="movie_name"
+                name="movie_name"
+                class="form-control"
+                placeholder="Enter the movie name"
+                required>
+            <div class="invalid-feedback">
+                Please provide a movie name.
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Add Movie
+        </button>
+        <a href="{{ url_for('user_movies', user_id=user_id) }}" class="btn btn-secondary ml-2">Back to Movie List</a>
     </form>
+</div>
+{% endblock %}
 
-    <!-- Back to user's movie list -->
-    <p>
-        <a href="{{ url_for('user_movies', user_id=user_id) }}">Back to Movie List</a>
-    </p>
-</body>
-</html>

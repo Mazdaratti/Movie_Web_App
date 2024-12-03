@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Home - MovieWeb App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Featured Movies</h1>
+
+    <div class="row">
+        {% for movie in featured_movies %}
+            <div class="col-md-4 col-lg-3 mb-4">
+                <div class="card movie-card h-100">
+                    {% if movie.poster %}
+                        <img src="{{ movie.poster }}" class="card-img-top" alt="{{ movie.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.name }}</h5>
+                        <div class="card-text">
+                            {% if movie.rating %} <p><strong>IMDb Rating:</strong> {{ movie.rating }}</p> {% endif %}
+                            {% if movie.year %} <p><strong>Year:</strong> {{ movie.year }}</p> {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        <a href="{{ movie.imdb_link }}" class="btn btn-info btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt"></i> IMDb
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+
