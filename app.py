@@ -1,10 +1,10 @@
 import os
+from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, redirect, flash, request, url_for
 from datamanager.sqlite_data_manager import SQLiteDataManager
 from storage import PATH
-
 
 # Create the Flask app
 app = Flask(__name__)
@@ -21,6 +21,13 @@ data_manager = SQLiteDataManager(app)
 handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
 handler.setLevel(logging.ERROR)
 app.logger.addHandler(handler)
+
+
+@app.route('/')
+def home():
+    recent_movies = data_manager.get_recent_movies()
+    year = datetime.now().year
+    return render_template('home.html', featured_movies=recent_movies, current_year=year)
 
 
 @app.route('/users')
@@ -56,14 +63,18 @@ def user_movies(user_id):
 
     :param user_id: ID of the user whose movies are to be displayed.
     """
-    user = data_manager.get_user_by_id(user_id)  # Fetch the user by ID
+    user = data_manager.get_user_by_id(user_id)
 
     if not user:
         return render_template('error.html',
                                error_message=f"User with ID {user_id} not found."), 404
 
-    movies = data_manager.get_user_movies(user_id)  # Fetch the user's movies
-    return render_template('user_movies.html', user=user, movies=movies)
+    try:
+        movies = data_manager.get_user_movies(user_id)
+        return render_template('user_movies.html', user=user, movies=movies)
+
+    except Exception as e:
+        return render_template('error.html', error_message=f"An error occurred: {str(e)}"), 500
 
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
@@ -108,51 +119,63 @@ def add_movie(user_id):
     return render_template('add_movie.html', user_id=user_id)
 
 
-@app.route('/users/<int:user_id>/update_movie/<int:movie_id>', methods=['GET', 'POST'])
-def update_movie(user_id, movie_id):
+@app.route('/users/<int:user_id>/update_movie/<int:user_movie_id>', methods=['GET', 'POST'])
+def update_movie(user_id, user_movie_id):
     """
-    Route to update a movie's details.
+    Route to update user-specific details for a movie.
 
-    - GET: Display a form pre-filled with the current movie details.
-    - POST: Update the movie details based on submitted form data.
+    - GET: Display a form pre-filled with the current user-movie details.
+    - POST: Update the user-specific movie details.
 
-    :param user_id: ID of the user who owns the movie.
-    :param movie_id: ID of the movie to be updated.
+    :param user_id: ID of the user
+    :param user_movie_id: ID of the UserMovies record to update.
     :return: Rendered template for GET, or a redirect/flash message for POST.
     """
     try:
-        movie = data_manager.get_movie_by_id(movie_id)
-        if not movie:
-            return render_template('404.html'), 404
+        user_movie = data_manager.get_user_movie(user_movie_id)
+
+        if not user_movie:
+            return render_template('error.html', error_message="User-movie record not found."), 404
 
         if request.method == 'POST':
             updated_details = request.form.to_dict()
-            result = data_manager.update_movie(movie_id, updated_details)
+
+            # Check if `user_rating` is empty or not provided, set it to None
+            user_rating = updated_details.get('user_rating')
+            updated_details['user_rating'] = user_rating if user_rating else None
+
+            result = data_manager.update_movie(user_movie_id, updated_details)
 
             if "success" in result:
-                flash(result['success'], "success")
+                flash(result["success"], "success")
                 return redirect(url_for('user_movies', user_id=user_id))
             else:
-                flash(result['error'], "error")
+                flash(result["error"], "error")
 
-        return render_template('update_movie.html', movie=movie)
+        return render_template('update_movie.html', user_movie=user_movie)
 
     except KeyError as e:
         flash(f"Invalid form data: {str(e)}", "error")
         return render_template('error.html', error_message="Invalid data submitted.")
     except Exception as e:
         app.logger.error(f"Error in update_movie route: {e}")
-        return render_template('500.html'), 500
+        return render_template('505.html'), 505
 
 
-@app.route('/users/<user_id>/delete_movie/<movie_id>', methods=['POST'])
-def delete_movie(user_id, movie_id):
+@app.route('/users/<int:user_id>/delete_movie/<int:user_movie_id>', methods=['POST'])
+def delete_movie(user_id, user_movie_id):
     """
-    Route to delete a movie.
-    Deletes the movie with the given ID and redirects to the users list page.
+    Route to delete a user-specific movie entry.
+
+    - Deletes the association of the movie with the specific user from the `UserMovies` table.
+    - If no other users are associated with the movie, it deletes the movie itself from the `Movies` table.
+
+    :param user_id:
+    :param user_movie_id: ID of the `UserMovies` record to delete.
+    :return: Redirects to the user's movie list page on success, or renders an error template on failure.
     """
     try:
-        result = data_manager.delete_movie(movie_id, user_id)
+        result = data_manager.delete_movie(user_movie_id)
 
         if "success" in result:
             flash(result['success'], "success")

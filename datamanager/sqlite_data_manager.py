@@ -84,67 +84,133 @@ class SQLiteDataManager(DataManagerInterface):
             self.db.session.rollback()  # Rollback any pending changes in case of error
             return {"error": f"An error occurred while deleting the user: {str(e)}"}
 
+    def get_user_movie(self, user_movie_id):
+        """
+        Fetches a UserMovies object by its unique ID.
+
+        :param user_movie_id: The ID of the UserMovies record to fetch.
+        :return: A UserMovies object if found, else None.
+        """
+        try:
+            user_movie = UserMovies.query.get(user_movie_id)
+            return user_movie
+        except Exception as e:
+            print(f"Error fetching movie by ID: {e}")
+            return None
+
     def get_user_movies(self, user_id):
         """
-        Retrieves all movies associated with a specific user.
+        Retrieves all movies associated with a specific user, including user-specific overrides.
 
         :param user_id: ID of the user whose movies are to be fetched.
-        :return: A list of movies associated with the user.
+        :return: A list of dictionaries containing movie data with user-specific values where applicable.
         """
-        user_movies = self.db.session.query(Movie).join(UserMovies).filter(UserMovies.user_id == user_id).all()
-        return user_movies
+        try:
+            # Query to fetch user-movie relationships and associated movie details
+            user_movies = (
+                db.session.query(UserMovies, Movie)
+                .join(Movie, UserMovies.movie_id == Movie.id)
+                .filter(UserMovies.user_id == user_id)
+                .all()
+            )
+
+            # Construct the result
+            result = []
+            for user_movie, movie in user_movies:
+                result.append({
+                    "id": movie.id,
+                    "user_movie_id": user_movie.id,
+                    "name": user_movie.user_title if user_movie.user_title else movie.name,
+                    "year": movie.year,
+                    "director": movie.director,
+                    "poster": movie.poster,
+                    "imdb_link": movie.imdb_link,
+                    "rating": movie.rating,
+                    "user_title": user_movie.user_title,
+                    "user_rating": user_movie.user_rating,
+                    "user_notes": user_movie.user_notes,
+                    "added_at": user_movie.added_at
+                })
+
+            return result
+
+        except Exception as e:
+            print(f"Error fetching user movies: {str(e)}")
+            return []
 
     def get_movie_by_id(self, movie_id):
         """
-        Fetches a movie by their ID from the database.
+        Fetches a movie by its ID from the database.
 
         :param movie_id: ID of the movie to fetch.
         :return: Movie object if found, else None.
         """
-        return Movie.query.get(movie_id)
+        try:
+            movie = Movie.query.get(movie_id)
+            return movie
+        except Exception as e:
+            print(f"Error fetching movie by ID: {str(e)}")
+            return None
+
+    @staticmethod
+    def get_recent_movies():
+        return Movie.query.order_by(Movie.id.desc()).limit(8).all()
 
     def add_movie(self, user_id, movie_name):
         """
         Adds a movie to a specific user's collection. If the movie doesn't exist, fetches it from OMDb.
 
-        :param user_id: The ID of the user.
-        :param movie_name: A dictionary containing movie information (name, director, year, rating).
+        If the movie already exists in the database, it associates the movie with the user.
+        The user can add their own title, rating, and notes, while default values are
+        fetched from OMDb.
+
+        :param user_id: The ID of the user adding the movie.
+        :param movie_name: The name of the movie to be added.
         :return: A dictionary containing a success or error message.
         """
         try:
-            # Check if the movie already exists in the database based on both title and year
-            existing_movie = Movie.query.filter_by(
-                name=movie_name).first()
+            existing_movie = Movie.query.filter_by(name=movie_name).first()
             user = self.get_user_by_id(user_id)
+
             if existing_movie:
-                # Check if the movie is already associated with the user
                 existing_user_movie = UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first()
                 if existing_user_movie:
-                    return {
-                        "error": f"User '{user.name}' already has the movie '{movie_name}'."}
+                    return {"error": f"User '{user.name}' already has the movie '{movie_name}' in their collection."}
                 else:
-                    # Associate the movie with the user
-                    association = UserMovies(user_id=user_id, movie_id=existing_movie.id)
+                    association = UserMovies(
+                        user_id=user_id,
+                        movie_id=existing_movie.id,
+                        user_title=movie_name
+                    )
                     self.db.session.add(association)
                     self.db.session.commit()
-                    return {
-                        "success": f"Movie '{movie_name}' was successfully added to user '{user.name}'."}
+                    return {"success": f"Movie '{movie_name}' was successfully added to user '{user.name}'."}
+
             else:
-                # If movie doesn't exist in the database, fetch data from OMDb
+                # If the movie doesn't exist, fetch data from OMDb
                 movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
-                # Create and add the new movie to the database
-                new_movie = Movie(**movie_data)
+
+                # Handle cases where certain fields may be missing from the OMDb response
+                new_movie = Movie(
+                    name=movie_data.get('name', movie_name),
+                    director=movie_data.get('director', None),
+                    year=movie_data.get('year', None),
+                    rating=movie_data.get('rating', None),
+                    poster=movie_data.get('poster', None),
+                    imdb_link=movie_data.get('imdb_link', None)
+                )
                 self.db.session.add(new_movie)
                 self.db.session.commit()
 
-                # Now associate the new movie with the user
-                association = UserMovies(user_id=user_id, movie_id=new_movie.id)
+                association = UserMovies(
+                    user_id=user_id,
+                    movie_id=new_movie.id,
+                    user_title=movie_name
+                )
                 self.db.session.add(association)
                 self.db.session.commit()
 
-                return {
-                    "success": f"Movie '{movie_data['name']}' "
-                               f"was successfully added to user '{user.name}'."}
+                return {"success": f"Movie '{movie_data['name']}' was successfully added to user '{user.name}'."}
 
         except APIError as e:
             # Handle errors during the movie data fetch
@@ -153,69 +219,59 @@ class SQLiteDataManager(DataManagerInterface):
             # Handle other errors
             return {"error": f"An error occurred: {str(e)}"}
 
-    def update_movie(self, movie_id, updated_details):
+    def update_movie(self, user_movie_id, updated_details):
         """
-        Updates the details of an existing movie.
+        Updates the user-specific details of a movie in the UserMovies table.
 
-        :param movie_id: ID of the movie to be updated.
-        :param updated_details: Dictionary of updated details (e.g., {'name': 'New Name', 'year': 2024}).
-        :return: A dictionary with a success message or error message.
+        :param user_movie_id: The ID of the UserMovies record to update.
+        :param updated_details: A dictionary of updated user-specific details (e.g., {'user_title': 'New Title'}).
+        :return: A dictionary with success or error message.
         """
         try:
-            # Fetch the movie by its ID
-            movie = Movie.query.get(movie_id)
-            if not movie:
-                return {"error": f"Movie with ID {movie_id} not found."}
+            user_movie = self.get_user_movie(user_movie_id)
 
-            # Validate and update movie details
             for key, value in updated_details.items():
-                if hasattr(movie, key):
-                    setattr(movie, key, value)
+                if hasattr(user_movie, key):
+                    setattr(user_movie, key, value)
                 else:
-                    return {"error": f"Invalid attribute '{key}' for movie."}
+                    return {"error": f"Invalid attribute '{key}' for movie details."}
 
-            # Commit changes to the database
             self.db.session.commit()
 
-            return {"success": f"Movie '{movie.name}' has been successfully updated."}
+            return {"success": f"Movie '{user_movie.movie.name}' has been successfully updated."}
 
         except Exception as e:
             return {"error": f"An error occurred while updating the movie: {str(e)}"}
 
-    def delete_movie(self, user_id, movie_id):
+    def delete_movie(self, user_movie_id):
         """
-        Deletes the association of a movie with a user. If the movie is no longer associated with any users,
-        the movie will be deleted.
+        Deletes a user-specific movie record and, if no other user is associated,
+        deletes the movie itself from the database.
 
-        :param movie_id: The ID of the movie to be deleted.
-        :param user_id: The ID of the user making the deletion request.
-        :return: A dictionary containing success or error message.
+        :param user_movie_id: ID of the UserMovies record to delete.
+        :return: A dictionary with success or error message.
         """
         try:
-            user = User.query.get(user_id)
-            if not user:
-                return {"error": f"User with ID {user_id} does not exist."}
+            user_movie = self.get_user_movie(user_movie_id)
 
-            movie = Movie.query.get(movie_id)
-            if not movie:
-                return {"error": f"Movie with ID {movie_id} does not exist."}
+            if not user_movie:
+                return {"error": "This movie is not in your list."}
 
-            # Delete the association between the current user and the movie
-            association_to_delete = UserMovies.query.filter_by(movie_id=movie_id, user_id=user_id).first()
+            movie = user_movie.movie
+            user_id = user_movie.user_id
 
-            if association_to_delete:
-                self.db.session.delete(association_to_delete)
+            self.db.session.delete(user_movie)
+            self.db.session.commit()
+
+            if not UserMovies.query.filter_by(movie_id=movie.id).first():
+                self.db.session.delete(movie)
                 self.db.session.commit()
 
-                # If no other users are associated with the movie, delete the movie itself
-                if not UserMovies.query.filter_by(movie_id=movie_id).count():
-                    self.db.session.delete(movie)
-                    self.db.session.commit()
-
-                return {"success": f"Movie '{movie.name}' has been successfully removed from your list."}
-
-            else:
-                return {"error": "This movie is not in your list."}
+            return {
+                "success": f"Movie '{movie.name}' has been successfully removed from your list.",
+                "user_id": user_id
+            }
 
         except Exception as e:
             return {"error": f"An error occurred: {str(e)}"}
+
