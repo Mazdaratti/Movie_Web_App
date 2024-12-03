@@ -1,5 +1,28 @@
+"""
+This module sets up the Flask web application for managing users and their movie collections.
+It provides routes for displaying users, adding and deleting users, adding and updating movies
+to user collections, and handling errors. The application uses SQLite as the database,
+with all necessary operations being handled by the SQLiteDataManager.
+
+Routes:
+    - /: Home page that displays recent movies.
+    - /users: Displays a list of all users.
+    - /add_user: Page for adding a new user.
+    - /users/<int:user_id>: Displays a user's movie collection.
+    - /delete_user/<int:user_id>: Deletes a user.
+    - /users/<int:user_id>/add_movie: Adds a movie to a user's collection.
+    - /users/<int:user_id>/update_movie/<int:user_movie_id>: Updates user-specific movie details.
+    - /users/<int:user_id>/delete_movie/<int:user_movie_id>: Deletes a movie from a user's collection.
+    - Error Handlers: Custom 404 and 500 error pages.
+
+Configuration:
+    - SQLite database URI defined in the app's config.
+    - Log errors to a rotating log file ('app.log').
+
+Logging:
+    - Error logs are saved to a rotating file 'app.log' with a max size of 10KB and 1 backup.
+"""
 import os
-from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, redirect, flash, request, url_for
@@ -25,15 +48,27 @@ app.logger.addHandler(handler)
 
 @app.route('/')
 def home():
+    """
+    Displays the home page with recent movies.
+
+    Fetches a list of recently added movies from the database and displays it on the home page.
+
+    Returns:
+        dict: A dictionary containing the rendered home page template with recent movies and the current year.
+    """
     recent_movies = data_manager.get_recent_movies()
-    year = datetime.now().year
-    return render_template('home.html', featured_movies=recent_movies, current_year=year)
+    return render_template('home.html', featured_movies=recent_movies)
 
 
 @app.route('/users')
 def list_users():
     """
     Fetches all users and renders the users list page.
+
+    Retrieves all user data from the database and renders it on the 'users' page.
+
+    Returns:
+        dict: A dictionary containing the rendered users list page with all users.
     """
     users = data_manager.get_all_users()
     return render_template('users.html', users=users)
@@ -41,6 +76,15 @@ def list_users():
 
 @app.route('/add_user', methods=['GET', 'POST'])
 def add_user():
+    """
+    Allows the addition of a new user.
+
+    - GET: Displays the form to add a new user.
+    - POST: Submits the form and adds the user to the database.
+
+    Returns:
+        dict: A dictionary containing the redirected response to the add user page with a success or error message.
+    """
     if request.method == 'POST':
         user_name = request.form['name']
         result = data_manager.add_user(user_name)
@@ -59,9 +103,14 @@ def add_user():
 def user_movies(user_id):
     """
     Displays the list of movies for a specific user.
-    If the user is not found, an error page is shown.
 
-    :param user_id: ID of the user whose movies are to be displayed.
+    Fetches and displays the movie collection for the specified user. If the user is not found, shows an error.
+
+    Args:
+        user_id (int): The ID of the user whose movies are to be displayed.
+
+    Returns:
+        dict: A dictionary containing the rendered template with the user's movie collection or an error message.
     """
     user = data_manager.get_user_by_id(user_id)
 
@@ -80,8 +129,15 @@ def user_movies(user_id):
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     """
-    Route to delete a user.
-    Deletes the user with the given ID and redirects to the users list page.
+    Deletes a user from the database.
+
+    Deletes the user identified by user_id from the database and redirects to the user list page.
+
+    Args:
+        user_id (int): The ID of the user to be deleted.
+
+    Returns:
+        dict: A dictionary containing the success or error message and the redirection to the user list page.
     """
     result = data_manager.delete_user(user_id)
 
@@ -95,6 +151,18 @@ def delete_user(user_id):
 
 @app.route('/users/<int:user_id>/add_movie', methods=['GET', 'POST'])
 def add_movie(user_id):
+    """
+    Adds a movie to a user's collection.
+
+    - GET: Displays the form to add a movie to the specified user's collection.
+    - POST: Adds the movie to the user's collection and flashes a success or error message.
+
+    Args:
+        user_id (int): The ID of the user to whom the movie will be added.
+
+    Returns:
+        dict: A dictionary containing the redirected response to the add movie page with success or error message.
+    """
     if request.method == 'POST':
         movie_name = request.form.get('movie_name')
 
@@ -122,14 +190,17 @@ def add_movie(user_id):
 @app.route('/users/<int:user_id>/update_movie/<int:user_movie_id>', methods=['GET', 'POST'])
 def update_movie(user_id, user_movie_id):
     """
-    Route to update user-specific details for a movie.
+    Updates details for a specific movie in a user's collection.
 
-    - GET: Display a form pre-filled with the current user-movie details.
-    - POST: Update the user-specific movie details.
+    - GET: Displays a form pre-filled with current movie details.
+    - POST: Submits the form to update the movie's details.
 
-    :param user_id: ID of the user
-    :param user_movie_id: ID of the UserMovies record to update.
-    :return: Rendered template for GET, or a redirect/flash message for POST.
+    Args:
+        user_id (int): The ID of the user whose movie is being updated.
+        user_movie_id (int): The ID of the movie to update.
+
+    Returns:
+        dict: A dictionary containing the redirected response to the user's movie list with success or error message.
     """
     try:
         user_movie = data_manager.get_user_movie(user_movie_id)
@@ -165,14 +236,16 @@ def update_movie(user_id, user_movie_id):
 @app.route('/users/<int:user_id>/delete_movie/<int:user_movie_id>', methods=['POST'])
 def delete_movie(user_id, user_movie_id):
     """
-    Route to delete a user-specific movie entry.
+    Deletes a specific movie from a user's collection.
 
-    - Deletes the association of the movie with the specific user from the `UserMovies` table.
-    - If no other users are associated with the movie, it deletes the movie itself from the `Movies` table.
+    If no other users are associated with the movie, it is deleted from the `Movies` table as well.
 
-    :param user_id:
-    :param user_movie_id: ID of the `UserMovies` record to delete.
-    :return: Redirects to the user's movie list page on success, or renders an error template on failure.
+    Args:
+        user_id (int): The ID of the user whose movie is being deleted.
+        user_movie_id (int): The ID of the movie to delete from the user's collection.
+
+    Returns:
+        dict: A dictionary containing a success or error message and redirection to the user's movie list page.
     """
     try:
         result = data_manager.delete_movie(user_movie_id)

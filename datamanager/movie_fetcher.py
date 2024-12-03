@@ -1,3 +1,8 @@
+"""
+This module provides functionality to fetch movie data from the OMDb API.
+It includes methods to interact with the API and retrieve detailed information
+about movies based on their titles or other criteria.
+"""
 import os
 import requests
 from dotenv import load_dotenv
@@ -28,6 +33,8 @@ class APIError(Exception):
 class MovieInfoDownloader:
     """
     A class to fetch movie information using the OMDb API.
+
+    Provides methods to retrieve detailed movie data such as title, year, IMDb rating, and more.
     """
 
     def __init__(self, api_url: str = None) -> None:

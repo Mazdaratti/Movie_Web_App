@@ -1,6 +1,4 @@
 """
-models.py
-
 This module defines the database models for the MovieWeb App, including:
 - User: Represents a user of the application.
 - Movie: Represents movies stored in the database.
