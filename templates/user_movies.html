@@ -5,7 +5,12 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="mb-4">{{ user.name }}'s Favorite Movies</h1>
-
+    <div class="mt-4">
+        <a href="{{ url_for('add_movie', user_id=user.id) }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add New Movie
+        </a>
+    </div>
+    <br>
     {% if movies %}
         <div class="row">
             {% for movie in movies %}
@@ -55,5 +60,6 @@
             <i class="fas fa-plus"></i> Add New Movie
         </a>
     </div>
+    <br>
 </div>
 {% endblock %}
