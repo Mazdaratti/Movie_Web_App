@@ -128,7 +128,6 @@ class SQLiteDataManager(DataManagerInterface):
             list: A list of dictionaries containing movie data with user-specific values where applicable.
         """
         try:
-            # Query to fetch user-movie relationships and associated movie details
             user_movies = (
                 db.session.query(UserMovies, Movie)
                 .join(Movie, UserMovies.movie_id == Movie.id)
@@ -136,7 +135,6 @@ class SQLiteDataManager(DataManagerInterface):
                 .all()
             )
 
-            # Construct the result
             result = []
             for user_movie, movie in user_movies:
                 result.append({
@@ -211,7 +209,7 @@ class SQLiteDataManager(DataManagerInterface):
             if existing_movie:
                 existing_user_movie = UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first()
                 if existing_user_movie:
-                    return {"error": f"User '{user.name}' already has the movie '{movie_name}' in their collection."}
+                    return {"error": f"You already have the movie '{movie_name}' in your collection!"}
                 else:
                     association = UserMovies(
                         user_id=user_id,
@@ -220,7 +218,7 @@ class SQLiteDataManager(DataManagerInterface):
                     )
                     self.db.session.add(association)
                     self.db.session.commit()
-                    return {"success": f"Movie '{movie_name}' was successfully added to user '{user.name}'."}
+                    return {"success": f"Movie '{movie_name}' was successfully added to your collection!"}
 
             else:
                 movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
