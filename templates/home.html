@@ -13,11 +13,12 @@
                     {% if movie.poster %}
                         <img src="{{ movie.poster }}" class="card-img-top" alt="{{ movie.name }}">
                     {% endif %}
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">{{ movie.name }}</h5>
-                        <div class="card-text">
-                            {% if movie.rating %} <p><strong>IMDb Rating:</strong> {{ movie.rating }}</p> {% endif %}
+                        <div class="card-text mt-auto">
                             {% if movie.year %} <p><strong>Year:</strong> {{ movie.year }}</p> {% endif %}
+                            {% if movie.rating %} <p><strong>IMDb Rating:</strong> {{ movie.rating }}</p> {% endif %}
+
                         </div>
                     </div>
                     <div class="card-footer d-flex justify-content-between">

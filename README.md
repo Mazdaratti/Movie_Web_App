@@ -75,8 +75,7 @@ MovieWeb_App/
 │   ├── data_manager.py            # Main logic for data operations
 │   ├── models.py                  # ORM models
 │   ├── movie_fetcher.py           # OMDb API integration
-│   ├── sqlite_data_manager.py     # SQLite data manager implementation
-│   └── .env                       # Environment variables (API key)
+│   └── sqlite_data_manager.py     # SQLite data manager implementation   
 ├── static/
 │   ├── form-validation.js         # Client-side form validation
 │   └── style.css                  # Custom styles
