@@ -11,7 +11,30 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
-class User(db.Model):
+class BaseModel(db.Model):
+    """
+    A base model that provides a `to_dict` method for all child classes.
+    """
+    __abstract__ = True  # Mark this class as abstract; it won't be created as a table.
+
+    def to_dict(self, include_relationships=False):
+        """
+        Converts all column attributes of the model into a dictionary.
+        Optionally includes related objects.
+        """
+        result = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
+        if include_relationships:
+            for relationship in self.__mapper__.relationships:
+                related_value = getattr(self, relationship.key)
+                if isinstance(related_value, list):  # For one-to-many relationships
+                    result[relationship.key] = [item.to_dict() for item in related_value]
+                elif related_value:  # For one-to-one or many-to-one relationships
+                    result[relationship.key] = related_value.to_dict()
+        return result
+
+
+class User(BaseModel):
     """
     Represents a user of the MovieWeb App.
 
@@ -25,7 +48,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable=False, unique=True)
 
 
-class Movie(db.Model):
+class Movie(BaseModel):
     """
     Represents a movie in the MovieWeb App.
 
@@ -49,7 +72,7 @@ class Movie(db.Model):
     imdb_link = db.Column(db.String(255))
 
 
-class UserMovies(db.Model):
+class UserMovies(BaseModel):
     """
     Represents the association between a user and a movie.
 
