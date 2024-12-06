@@ -24,7 +24,6 @@ class SQLiteDataManager(DataManagerInterface):
         Args:
             app: Flask app instance with SQLAlchemy configuration.
         """
-        app.app_context().push()  # Ensure app context for SQLAlchemy
         db.init_app(app)  # Initialize SQLAlchemy with Flask app
         self.db = db  # Store the db object for use in methods
 
@@ -263,6 +262,8 @@ class SQLiteDataManager(DataManagerInterface):
         """
         try:
             user_movie = self.get_user_movie(user_movie_id)
+            if not user_movie:
+                return {"error": "This movie is not in your list."}
 
             for key, value in updated_details.items():
                 if hasattr(user_movie, key):

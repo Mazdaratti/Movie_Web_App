@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="mb-4">Update Movie Details for "{{ user_movie.movie.name }}"</h1>
-    <form method="post" action="{{ url_for('update_movie', user_id=user_movie.user_id, user_movie_id=user_movie.id) }}">
+    <form method="post" action="{{ url_for('html_routes.update_movie', user_id=user_movie.user_id, user_movie_id=user_movie.id) }}">
         <div class="form-group">
             <label for="user_title">Custom Title:</label>
             <input type="text" id="user_title" name="user_title" class="form-control" value="{{ user_movie.user_title }}">
@@ -25,7 +25,7 @@
     </form>
 
     <div class="mt-4">
-        <a href="{{ url_for('user_movies', user_id=user_movie.user_id) }}" class="btn btn-secondary">Back to Movie List</a>
+        <a href="{{ url_for('html_routes.user_movies', user_id=user_movie.user_id) }}" class="btn btn-secondary">Back to Movie List</a>
     </div>
 </div>
 {% endblock %}
