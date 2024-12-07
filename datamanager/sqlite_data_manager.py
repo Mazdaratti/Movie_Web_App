@@ -84,8 +84,7 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary with a success or error message.
         """
         try:
-            user = self.get_user_by_id(user_id)
-            if not user:
+            if not (user := self.get_user_by_id(user_id)):
                 return {"error": f"User with ID {user_id} not found"}
 
             UserMovies.query.filter_by(user_id=user_id).delete()
@@ -96,7 +95,7 @@ class SQLiteDataManager(DataManagerInterface):
             return {"success": f"User with ID {user_id} and all associated data have been deleted successfully"}
         except Exception as e:
             self.db.session.rollback()
-            return {"error": f"An error occurred while deleting the user: {str(e)}"}
+            return {"error": f"An error occurred: {str(e)}"}
 
     def get_user_movie(self, user_movie_id):
         """
@@ -213,7 +212,7 @@ class SQLiteDataManager(DataManagerInterface):
                     association = UserMovies(
                         user_id=user_id,
                         movie_id=existing_movie.id,
-                        user_title=movie_name
+                        user_title=existing_movie.name
                     )
                     self.db.session.add(association)
                     self.db.session.commit()
@@ -236,7 +235,7 @@ class SQLiteDataManager(DataManagerInterface):
                 association = UserMovies(
                     user_id=user_id,
                     movie_id=new_movie.id,
-                    user_title=movie_name
+                    user_title=new_movie.name
                 )
                 self.db.session.add(association)
                 self.db.session.commit()
@@ -261,8 +260,7 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary with success or error message.
         """
         try:
-            user_movie = self.get_user_movie(user_movie_id)
-            if not user_movie:
+            if not (user_movie := self.get_user_movie(user_movie_id)):
                 return {"error": "This movie is not in your list."}
 
             for key, value in updated_details.items():
@@ -277,7 +275,7 @@ class SQLiteDataManager(DataManagerInterface):
 
         except Exception as e:
             self.db.session.rollback()
-            return {"error": f"An error occurred while updating the movie: {str(e)}"}
+            return {"error": f"An error occurred: {str(e)}"}
 
     def delete_movie(self, user_movie_id):
         """
@@ -290,9 +288,8 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary with success or error message.
         """
         try:
-            user_movie = self.get_user_movie(user_movie_id)
 
-            if not user_movie:
+            if not (user_movie := self.get_user_movie(user_movie_id)):
                 return {"error": "This movie is not in your list."}
 
             movie = user_movie.movie
