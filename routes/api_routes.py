@@ -10,8 +10,9 @@ Functions:
 
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
-from helpers.api_helpers import create_response
+from helpers.api_helpers import create_success_response, create_error_response
 from helpers.logger import logger
+
 
 def create_api(data_manager):
     """
@@ -35,10 +36,10 @@ def create_api(data_manager):
         """
         try:
             users = data_manager.get_all_users()
-            return create_response("success", data=[user.to_dict() for user in users])
+            return create_success_response(data=[user.to_dict() for user in users])
         except Exception as e:
             logger.error(f"Error in get_users: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/<int:user_id>', methods=['GET'])
     def get_user(user_id):
@@ -54,12 +55,12 @@ def create_api(data_manager):
         try:
             user = data_manager.get_user_by_id(user_id)
             if not user:
-                return create_response(
-                    "error", message=f'User with ID {user_id} not found'), 404
+                return create_error_response(
+                    message=f'User with ID {user_id} not found'), 404
             return jsonify(user.to_dict()), 200
         except Exception as e:
             logger.error(f"Error in get_user with ID {user_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users', methods=['POST'])
     def add_user():
@@ -78,18 +79,18 @@ def create_api(data_manager):
             data = request.get_json()
             user_name = data.get('name')
             if not user_name:
-                return create_response(
-                    "error", message="User name is required"), 400
+                return create_error_response(
+                    message="User name is required"), 400
             result = data_manager.add_user(user_name)
             if 'error' in result:
-                return create_response("error", message=result['error']), 400
-            return create_response("success", message=result['success']), 201
+                return create_error_response(message=result['error']), 400
+            return create_success_response(message=result['success']), 201
         except BadRequest as e:
             logger.error(f"BadRequest in add_user: {str(e)}")
-            return create_response("error", message="Invalid JSON format"), 400
+            return create_error_response(message="Invalid JSON format"), 400
         except Exception as e:
             logger.error(f"Error in add_user: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/<int:user_id>', methods=['DELETE'])
     def delete_user(user_id):
@@ -105,11 +106,11 @@ def create_api(data_manager):
         try:
             result = data_manager.delete_user(user_id)
             if 'error' in result:
-                return create_response("error", message=result["error"]), 404
-            return create_response("success", message=result["success"])
+                return create_error_response(message=result["error"]), 404
+            return create_success_response(message=result["success"])
         except Exception as e:
             logger.error(f"Error in delete_user with ID {user_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/<int:user_id>/movies', methods=['GET'])
     def get_user_movies(user_id):
@@ -125,13 +126,13 @@ def create_api(data_manager):
         try:
             movies = data_manager.get_user_movies(user_id)
             if not movies:
-                return create_response(
-                    "error", message=f'No movies found for user with ID {user_id}'), 404
-            return create_response("success", data=movies)
+                return create_error_response(
+                    message=f'No movies found for user with ID {user_id}'), 404
+            return create_success_response(data=movies)
         except Exception as e:
             logger.error(
                 f"Error in get_user_movies for user with ID {user_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/<int:user_id>/movies', methods=['POST'])
     def add_movie_to_user(user_id):
@@ -153,21 +154,21 @@ def create_api(data_manager):
             data = request.get_json()
             movie_name = data.get('movie_name')
             if not movie_name:
-                return create_response(
-                    "error", message="Movie name is required"), 400
+                return create_error_response(
+                    message="Movie name is required"), 400
             result = data_manager.add_movie(user_id, movie_name)
             if 'error' in result:
-                return create_response(
-                    "error", message=result['error']), 400
-            return create_response("success", message=result['success']), 201
+                return create_error_response(
+                    message=result['error']), 400
+            return create_success_response(message=result['success']), 201
         except BadRequest:
             logger.error(
                 "BadRequest in add_movie_to_user: Invalid JSON format")
-            return create_response("error", message="Invalid JSON format"), 400
+            return create_error_response(message="Invalid JSON format"), 400
         except Exception as e:
             logger.error(
                 f"Error in add_movie_to_user for user with ID {user_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/movies/<int:user_movie_id>', methods=['PATCH'])
     def update_user_movie(user_movie_id):
@@ -191,16 +192,16 @@ def create_api(data_manager):
             data = request.get_json()
             result = data_manager.update_movie(user_movie_id, data)
             if 'error' in result:
-                return create_response("error", message=result['error']), 400
-            return create_response("success", message=result['success'])
+                return create_error_response(message=result['error']), 400
+            return create_success_response(message=result['success'])
         except BadRequest:
             logger.error(
                 f"BadRequest in update_user_movie with ID {user_movie_id}: Invalid JSON format")
-            return create_response("error", message="Invalid JSON format"), 400
+            return create_error_response(message="Invalid JSON format"), 400
         except Exception as e:
             logger.error(
                 f"Error in update_user_movie with ID {user_movie_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     @api.route('/users/movies/<int:user_movie_id>', methods=['DELETE'])
     def delete_user_movie(user_movie_id):
@@ -216,12 +217,11 @@ def create_api(data_manager):
         try:
             result = data_manager.delete_movie(user_movie_id)
             if 'error' in result:
-                return create_response("error", message=result['error']), 404
-            return create_response("success", message=result['success'])
+                return create_error_response(message=result['error']), 404
+            return create_success_response(message=result['success'])
         except Exception as e:
             logger.error(
                 f"Error in delete_user_movie with ID {user_movie_id}: {str(e)}")
-            return create_response("error", message=str(e)), 500
+            return create_error_response(message=str(e)), 500
 
     return api
-
