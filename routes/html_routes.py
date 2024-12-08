@@ -18,12 +18,14 @@ Routes:
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from helpers.html_helpers import flash_message, render_error_page
 from helpers.logger import logger
+from decorators.html_decorators import handle_errors
 
 
 def create_html_route(data_manager):
     html_routes = Blueprint('html_routes', __name__)
 
     @html_routes.route('/')
+    @handle_errors()
     def home():
         """
         Render the home page with a list of featured movies.
@@ -36,14 +38,12 @@ def create_html_route(data_manager):
             Response: The rendered HTML template for the home page, including the
             list of featured movies, or an error page if a server issue occurs.
         """
-        try:
-            recent_movies = data_manager.get_recent_movies()
-            return render_template('home.html', featured_movies=recent_movies)
-        except Exception as e:
-            logger.error(f"Error in home route: {e}")
-            return render_error_page(500, "Failed to load recent movies.")
+
+        recent_movies = data_manager.get_recent_movies()
+        return render_template('home.html', featured_movies=recent_movies)
 
     @html_routes.route('/users')
+    @handle_errors()
     def list_users():
         """
         Render the users list page with all registered users.
@@ -56,14 +56,11 @@ def create_html_route(data_manager):
             Response: The rendered HTML template for the users list page, including
             all user data, or an error page if a server issue occurs.
         """
-        try:
-            users = data_manager.get_all_users()
-            return render_template('users.html', users=users)
-        except Exception as e:
-            logger.error(f"Error in list_users route: {e}")
-            return render_error_page(500, "Failed to load users.")
+        users = data_manager.get_all_users()
+        return render_template('users.html', users=users)
 
     @html_routes.route('/add_user', methods=['GET', 'POST'])
+    @handle_errors()
     def add_user():
         """
         Handles the creation of a new user.
@@ -78,30 +75,27 @@ def create_html_route(data_manager):
             On failure (POST): Redirects to the same page with an error message.
             On GET: Renders the add user form template.
         """
-        try:
-            if request.method == 'POST':
-                user_name = request.form['name']
 
-                if not user_name:
-                    flash_message("User name is required.", 'error')
-                    return redirect(url_for('html_routes.add_user'))
+        if request.method == 'POST':
+            user_name = request.form['name']
 
-                result = data_manager.add_user(user_name)
+            if not user_name:
+                flash_message("User name is required.", 'error')
+                return redirect(url_for('html_routes.add_user'))
 
-                if 'error' in result:
-                    flash_message(result['error'], 'error')
-                else:
-                    flash_message(result['success'], 'success')
+            result = data_manager.add_user(user_name)
 
-                return redirect(url_for('html_routes.list_users'))
+            if 'error' in result:
+                flash_message(result['error'], 'error')
+            else:
+                flash_message(result['success'], 'success')
 
-            return render_template('add_user.html')
+            return redirect(url_for('html_routes.list_users'))
 
-        except Exception as e:
-            logger.error(f"Unexpected error in add_user: {str(e)}")
-            return render_error_page(500, "Failed to add user due to an unexpected error.")
+        return render_template('add_user.html')
 
     @html_routes.route('/users/<int:user_id>')
+    @handle_errors()
     def user_movies(user_id):
         """
         Displays the movie collection for a specific user.
@@ -117,18 +111,15 @@ def create_html_route(data_manager):
             On success: The rendered template (`user_movies.html`) with the user's details and movie collection.
             On failure: An error page with an appropriate status code (404 if the user is not found, 500 for internal errors).
         """
-        try:
-            user = data_manager.get_user_by_id(user_id)
-            if not user:
-                return render_error_page(404, f"User with ID {user_id} not found.")
 
-            movies = data_manager.get_user_movies(user_id)
-            return render_template('user_movies.html', user=user, movies=movies)
-        except Exception as e:
-            logger.error(f"Error in user_movies route: {e}")
-            return render_error_page(500, "Failed to load user movies.")
+        user = data_manager.get_user_by_id(user_id)
+        if not user:
+            return render_error_page(404, f"User with ID {user_id} not found.")
+        movies = data_manager.get_user_movies(user_id)
+        return render_template('user_movies.html', user=user, movies=movies)
 
     @html_routes.route('/delete_user/<int:user_id>', methods=['POST'])
+    @handle_errors()
     def delete_user(user_id):
         """
         Deletes a user from the database.
@@ -142,19 +133,14 @@ def create_html_route(data_manager):
             On success: Redirects to the users list page with a success message.
             On failure: Renders an error page with the appropriate message.
         """
-        try:
-            result = data_manager.delete_user(user_id)
+        result = data_manager.delete_user(user_id)
 
-            if "error" in result:
-                logger.error(f"Error in delete_user: {result['error']}")
-                return render_error_page(404, result["error"])
+        if "error" in result:
+            logger.error(f"Error in delete_user: {result['error']}")
+            return render_error_page(404, result["error"])
 
-            flash_message(result["success"], "success")
-            return redirect(url_for('html_routes.list_users'))
-
-        except Exception as e:
-            logger.error(f"Unexpected error in delete_user route: {e}")
-            return render_error_page(500, "An unexpected error occurred while deleting the user.")
+        flash_message(result["success"], "success")
+        return redirect(url_for('html_routes.list_users'))
 
     @html_routes.route('/users/<int:user_id>/add_movie', methods=['GET', 'POST'])
     def add_movie(user_id):
@@ -218,12 +204,10 @@ def create_html_route(data_manager):
             On error: Render the error page or redirect with an error message.
         """
         try:
-            user_movie = data_manager.get_user_movie(user_movie_id)
-            if not user_movie:
+            if not (user_movie := data_manager.get_user_movie(user_movie_id)):
                 return render_error_page(404, "Movie not found.")
 
-            user = data_manager.get_user_by_id(user_id)
-            if not user:
+            if not data_manager.get_user_by_id(user_id):
                 return render_error_page(404, "User not found.")
 
             if request.method == 'POST':
@@ -252,6 +236,7 @@ def create_html_route(data_manager):
             return render_error_page(500, "Failed to update movie.")
 
     @html_routes.route('/users/<int:user_id>/delete_movie/<int:user_movie_id>', methods=['POST'])
+    @handle_errors()
     def delete_movie(user_id, user_movie_id):
         """
         Deletes a specific movie from a user's collection.
@@ -266,18 +251,13 @@ def create_html_route(data_manager):
             On success: Redirect to the user's movie list with a success message.
             On error: Render the error page with an error message.
         """
-        try:
-            result = data_manager.delete_movie(user_movie_id)
+        result = data_manager.delete_movie(user_movie_id)
 
-            if "success" in result:
-                flash_message(result['success'], "success")
-                return redirect(url_for('html_routes.user_movies', user_id=user_id))
-            else:
-                flash_message(result['error'], "error")
-                return render_error_page(500, result["error"])
-
-        except Exception as e:
-            logger.error(f"Error in delete_movie route: {e}")
-            return render_error_page(500, "Failed to delete movie.")
+        if "success" in result:
+            flash_message(result['success'], "success")
+            return redirect(url_for('html_routes.user_movies', user_id=user_id))
+        else:
+            flash_message(result['error'], "error")
+            return render_error_page(500, result["error"])
 
     return html_routes
