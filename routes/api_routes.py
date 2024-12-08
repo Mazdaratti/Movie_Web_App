@@ -9,9 +9,8 @@ Functions:
 """
 
 from flask import Blueprint, jsonify, request
-from werkzeug.exceptions import BadRequest
 from helpers.api_helpers import create_success_response, create_error_response
-from helpers.logger import logger
+from helpers.decorators import handle_api_errors, validate_json
 
 
 def create_api(data_manager):
@@ -27,6 +26,7 @@ def create_api(data_manager):
     api = Blueprint('api', __name__)
 
     @api.route('/users', methods=['GET'])
+    @handle_api_errors()
     def get_users():
         """
         Retrieves all users from the database.
@@ -34,14 +34,11 @@ def create_api(data_manager):
         Returns:
             Response: JSON response containing a list of all users or an error message.
         """
-        try:
-            users = data_manager.get_all_users()
-            return create_success_response(data=[user.to_dict() for user in users])
-        except Exception as e:
-            logger.error(f"Error in get_users: {str(e)}")
-            return create_error_response(message=str(e)), 500
+        users = data_manager.get_all_users()
+        return create_success_response(data=[user.to_dict() for user in users]), 200
 
     @api.route('/users/<int:user_id>', methods=['GET'])
+    @handle_api_errors()
     def get_user(user_id):
         """
         Retrieves a specific user by their ID.
@@ -52,17 +49,14 @@ def create_api(data_manager):
         Returns:
             Response: JSON response containing the user data or an error message.
         """
-        try:
-            user = data_manager.get_user_by_id(user_id)
-            if not user:
-                return create_error_response(
-                    message=f'User with ID {user_id} not found'), 404
-            return jsonify(user.to_dict()), 200
-        except Exception as e:
-            logger.error(f"Error in get_user with ID {user_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+        if not (user := data_manager.get_user_by_id(user_id)):
+            return create_error_response(
+                message=f'User with ID {user_id} not found'), 404
+        return create_success_response(data=user.to_dict()), 200
 
     @api.route('/users', methods=['POST'])
+    @validate_json(required_keys=["name"])
+    @handle_api_errors()
     def add_user():
         """
         Adds a new user to the database.
@@ -75,24 +69,15 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        try:
-            data = request.get_json()
-            user_name = data.get('name')
-            if not user_name:
-                return create_error_response(
-                    message="User name is required"), 400
-            result = data_manager.add_user(user_name)
-            if 'error' in result:
-                return create_error_response(message=result['error']), 400
-            return create_success_response(message=result['success']), 201
-        except BadRequest as e:
-            logger.error(f"BadRequest in add_user: {str(e)}")
-            return create_error_response(message="Invalid JSON format"), 400
-        except Exception as e:
-            logger.error(f"Error in add_user: {str(e)}")
-            return create_error_response(message=str(e)), 500
+
+        data = request.get_json()
+        result = data_manager.add_user(data["name"])
+        if 'error' in result:
+            return create_error_response(message=result['error']), 400
+        return create_success_response(message=result["success"]), 201
 
     @api.route('/users/<int:user_id>', methods=['DELETE'])
+    @handle_api_errors()
     def delete_user(user_id):
         """
         Deletes a user and their associated movies.
@@ -103,16 +88,13 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        try:
-            result = data_manager.delete_user(user_id)
-            if 'error' in result:
-                return create_error_response(message=result["error"]), 404
-            return create_success_response(message=result["success"])
-        except Exception as e:
-            logger.error(f"Error in delete_user with ID {user_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+        result = data_manager.delete_user(user_id)
+        if 'error' in result:
+            return create_error_response(message=result["error"]), 404
+        return create_success_response(message=result["success"]), 200
 
     @api.route('/users/<int:user_id>/movies', methods=['GET'])
+    @handle_api_errors()
     def get_user_movies(user_id):
         """
         Retrieves all movies associated with a specific user.
@@ -123,18 +105,15 @@ def create_api(data_manager):
         Returns:
             Response: JSON response containing a list of user movies or an error message.
         """
-        try:
-            movies = data_manager.get_user_movies(user_id)
-            if not movies:
-                return create_error_response(
-                    message=f'No movies found for user with ID {user_id}'), 404
-            return create_success_response(data=movies)
-        except Exception as e:
-            logger.error(
-                f"Error in get_user_movies for user with ID {user_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+
+        if not (movies := data_manager.get_user_movies(user_id)):
+            return create_error_response(
+                message=f'No movies found for user with ID {user_id}'), 404
+        return create_success_response(data=movies), 200
 
     @api.route('/users/<int:user_id>/movies', methods=['POST'])
+    @validate_json(required_keys=["movie_name"])
+    @handle_api_errors()
     def add_movie_to_user(user_id):
         """
         Adds a movie to a specific user's collection.
@@ -150,27 +129,17 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        try:
-            data = request.get_json()
-            movie_name = data.get('movie_name')
-            if not movie_name:
-                return create_error_response(
-                    message="Movie name is required"), 400
-            result = data_manager.add_movie(user_id, movie_name)
-            if 'error' in result:
-                return create_error_response(
-                    message=result['error']), 400
-            return create_success_response(message=result['success']), 201
-        except BadRequest:
-            logger.error(
-                "BadRequest in add_movie_to_user: Invalid JSON format")
-            return create_error_response(message="Invalid JSON format"), 400
-        except Exception as e:
-            logger.error(
-                f"Error in add_movie_to_user for user with ID {user_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+
+        data = request.get_json()
+        result = data_manager.add_movie(user_id, data["movie_name"])
+        if 'error' in result:
+            return create_error_response(
+                message=result['error']), 400
+        return create_success_response(message=result['success']), 201
 
     @api.route('/users/movies/<int:user_movie_id>', methods=['PATCH'])
+    @validate_json()
+    @handle_api_errors()
     def update_user_movie(user_movie_id):
         """
         Updates user-specific details for a movie in the UserMovies collection.
@@ -188,22 +157,15 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        try:
-            data = request.get_json()
-            result = data_manager.update_movie(user_movie_id, data)
-            if 'error' in result:
-                return create_error_response(message=result['error']), 400
-            return create_success_response(message=result['success'])
-        except BadRequest:
-            logger.error(
-                f"BadRequest in update_user_movie with ID {user_movie_id}: Invalid JSON format")
-            return create_error_response(message="Invalid JSON format"), 400
-        except Exception as e:
-            logger.error(
-                f"Error in update_user_movie with ID {user_movie_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+
+        data = request.get_json()
+        result = data_manager.update_movie(user_movie_id, data)
+        if 'error' in result:
+            return create_error_response(message=result['error']), 400
+        return create_success_response(message=result['success']), 200
 
     @api.route('/users/movies/<int:user_movie_id>', methods=['DELETE'])
+    @handle_api_errors()
     def delete_user_movie(user_movie_id):
         """
         Deletes a specific movie from a user's collection.
@@ -214,14 +176,9 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        try:
-            result = data_manager.delete_movie(user_movie_id)
-            if 'error' in result:
-                return create_error_response(message=result['error']), 404
-            return create_success_response(message=result['success'])
-        except Exception as e:
-            logger.error(
-                f"Error in delete_user_movie with ID {user_movie_id}: {str(e)}")
-            return create_error_response(message=str(e)), 500
+        result = data_manager.delete_movie(user_movie_id)
+        if 'error' in result:
+            return create_error_response(message=result['error']), 404
+        return create_success_response(message=result['success']), 200
 
     return api
