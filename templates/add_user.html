@@ -7,7 +7,7 @@
     <h1 class="mb-4">Add a New User</h1>
 
     <!-- Add User Form -->
-    <form action="{{ url_for('add_user') }}" method="POST" class="needs-validation" novalidate>
+    <form action="{{ url_for('html_routes.add_user') }}" method="POST" class="needs-validation" novalidate>
         <div class="form-group">
             <label for="name" class="form-label">Name:</label>
             <input
@@ -24,7 +24,7 @@
         <button type="submit" class="btn btn-primary">
             <i class="fas fa-user-plus"></i> Add User
         </button>
-        <a href="{{ url_for('list_users') }}" class="btn btn-secondary ml-2">Back to Users List</a>
+        <a href="{{ url_for('html_routes.list_users') }}" class="btn btn-secondary ml-2">Back to Users List</a>
     </form>
     <br>
 </div>

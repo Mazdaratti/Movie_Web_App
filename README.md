@@ -76,12 +76,22 @@ MovieWeb_App/
 │   ├── models.py                  # ORM models
 │   ├── movie_fetcher.py           # OMDb API integration
 │   └── sqlite_data_manager.py     # SQLite data manager implementation   
+├── helpers/
+│   ├── __init__.py                # Package initializer
+│   ├── api_helpers.py             # Helper functions for API-related tasks
+│   ├── html_helpers.py            # Helper functions for HTML rendering
+│   └── logger.py                  # Logger configuration module
+├── routes/
+│   ├── __init__.py                # Package initializer
+│   ├── api_routes.py              # API routes for managing movies and users
+│   ├── error_handlers.py          # Error handler routes
+│   └── html_routes.py             # HTML routes for managing user interface
 ├── static/
 │   ├── form-validation.js         # Client-side form validation
 │   └── style.css                  # Custom styles
 ├── storage/
 │   ├── __init__.py                # Package initializer
-│   └── movieweb.sqlite           # SQLite database file
+│   └── movieweb.sqlite            # SQLite database file
 ├── templates/
 │   ├── 404.html                   # Page not found
 │   ├── 500.html                   # Internal server error
@@ -95,8 +105,10 @@ MovieWeb_App/
 │   └── users.html                 # Users list page
 ├── app.log                        # Application logs
 ├── app.py                         # Main application file
+├── initial.py                     # Initialization and app setup file
 ├── README.md                      # Project documentation
 └── requirements.txt               # Dependencies
+
 ```
 ## Technologies Used 💻
 
