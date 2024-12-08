@@ -18,7 +18,7 @@ Routes:
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from helpers.html_helpers import flash_message, render_error_page
 from helpers.logger import logger
-from decorators.html_decorators import handle_errors
+from decorators.html_decorators import handle_errors, validate_form, validate_user
 
 
 def create_html_route(data_manager):
@@ -61,6 +61,7 @@ def create_html_route(data_manager):
 
     @html_routes.route('/add_user', methods=['GET', 'POST'])
     @handle_errors()
+    @validate_form(required_fields=['name'])
     def add_user():
         """
         Handles the creation of a new user.
@@ -76,26 +77,21 @@ def create_html_route(data_manager):
             On GET: Renders the add user form template.
         """
 
-        if request.method == 'POST':
-            user_name = request.form['name']
+        if request.method == 'GET':
+            return render_template('add_user.html')
 
-            if not user_name:
-                flash_message("User name is required.", 'error')
-                return redirect(url_for('html_routes.add_user'))
+        user_name = request.form['name']
+        result = data_manager.add_user(user_name)
 
-            result = data_manager.add_user(user_name)
-
-            if 'error' in result:
-                flash_message(result['error'], 'error')
-            else:
-                flash_message(result['success'], 'success')
-
-            return redirect(url_for('html_routes.list_users'))
-
-        return render_template('add_user.html')
+        if 'error' in result:
+            flash_message(result['error'], 'error')
+        else:
+            flash_message(result['success'], 'success')
+        return redirect(url_for('html_routes.list_users'))
 
     @html_routes.route('/users/<int:user_id>')
     @handle_errors()
+    @validate_user(data_manager)
     def user_movies(user_id):
         """
         Displays the movie collection for a specific user.
@@ -111,10 +107,7 @@ def create_html_route(data_manager):
             On success: The rendered template (`user_movies.html`) with the user's details and movie collection.
             On failure: An error page with an appropriate status code (404 if the user is not found, 500 for internal errors).
         """
-
         user = data_manager.get_user_by_id(user_id)
-        if not user:
-            return render_error_page(404, f"User with ID {user_id} not found.")
         movies = data_manager.get_user_movies(user_id)
         return render_template('user_movies.html', user=user, movies=movies)
 
@@ -143,6 +136,9 @@ def create_html_route(data_manager):
         return redirect(url_for('html_routes.list_users'))
 
     @html_routes.route('/users/<int:user_id>/add_movie', methods=['GET', 'POST'])
+    @handle_errors()
+    @validate_user(data_manager)
+    @validate_form(required_fields=['movie_name'])
     def add_movie(user_id):
         """
         Adds a movie to a user's collection.
@@ -159,35 +155,20 @@ def create_html_route(data_manager):
             On error (POST): Redirects back to the add movie form with an error message.
             On GET: Renders the add movie form.
         """
-        user = data_manager.get_user_by_id(user_id)
-        if not user:
-            return render_error_page(404, "User not found.")
-
-        if request.method == 'POST':
-            movie_name = request.form.get('movie_name')
-
-            if not movie_name:
-                flash_message("Movie name is required.", "error")
-                return redirect(url_for('html_routes.add_movie', user_id=user_id))
-
-            try:
-                result = data_manager.add_movie(user_id, movie_name)
-
-                if 'error' in result:
-                    flash_message(result['error'], 'error')
-                else:
-                    flash_message(result['success'], 'success')
-            except KeyError as e:
-                flash_message(f"Missing data: {str(e)}", "error")
-                logger.error(f"KeyError in add_movie route: {e}")
-                return redirect(url_for('html_routes.add_movie', user_id=user_id))
-            except Exception as e:
-                logger.error(f"Error in add_movie route: {e}")
-                return render_error_page(500, "Failed to add movie.")
-
-        return render_template('add_movie.html', user_id=user_id)
+        if request.method == 'GET':
+            return render_template('add_movie.html', user_id=user_id)
+        movie_name = request.form.get('movie_name')
+        result = data_manager.add_movie(user_id, movie_name)
+        if 'error' in result:
+            flash_message(result['error'], 'error')
+        else:
+            flash_message(result['success'], 'success')
+        return redirect(url_for('html_routes.user_movies', user_id=user_id))
 
     @html_routes.route('/users/<int:user_id>/update_movie/<int:user_movie_id>', methods=['GET', 'POST'])
+    @handle_errors()
+    @validate_user(data_manager)
+    @validate_form()
     def update_movie(user_id, user_movie_id):
         """
         Updates details for a specific movie in a user's collection.
@@ -203,37 +184,25 @@ def create_html_route(data_manager):
             On success: Redirect to the user's movie list with a success message.
             On error: Render the error page or redirect with an error message.
         """
-        try:
-            if not (user_movie := data_manager.get_user_movie(user_movie_id)):
-                return render_error_page(404, "Movie not found.")
+        user_movie = data_manager.is_movie_in_user_list(user_id=user_id, user_movie_id=user_movie_id)
+        if not user_movie:
+            flash_message("This movie is not in your list.", "error")
+            return redirect(url_for('html_routes.user_movies', user_id=user_id))
 
-            if not data_manager.get_user_by_id(user_id):
-                return render_error_page(404, "User not found.")
-
-            if request.method == 'POST':
-                updated_details = request.form.to_dict()
-
-                # Check if `user_rating` is empty or not provided, set it to None
-                user_rating = updated_details.get('user_rating')
-                updated_details['user_rating'] = user_rating if user_rating else None
-
-                result = data_manager.update_movie(user_movie_id, updated_details)
-
-                if "success" in result:
-                    flash_message(result["success"], "success")
-                    return redirect(url_for('html_routes.user_movies', user_id=user_id))
-                else:
-                    flash_message(result["error"], "error")
-
+        if request.method == 'GET':
             return render_template('update_movie.html', user_movie=user_movie)
 
-        except KeyError as e:
-            logger.error(f"Invalid form data: {e}")
-            flash(f"Invalid form data: {str(e)}", "error")
-            return render_template('update_movie.html', user_movie=user_movie)
-        except Exception as e:
-            logger.error(f"Error in update_movie route: {e}")
-            return render_error_page(500, "Failed to update movie.")
+        updated_details = request.form.to_dict()
+
+        user_rating = updated_details.get('user_rating')
+        updated_details['user_rating'] = user_rating if user_rating else None
+
+        result = data_manager.update_movie(user_movie_id, updated_details)
+
+        if "success" in result:
+            flash_message(result["success"], "success")
+            return redirect(url_for('html_routes.user_movies', user_id=user_id))
+        flash_message(result["error"], "error")
 
     @html_routes.route('/users/<int:user_id>/delete_movie/<int:user_movie_id>', methods=['POST'])
     @handle_errors()
