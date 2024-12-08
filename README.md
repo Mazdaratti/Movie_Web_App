@@ -19,7 +19,8 @@ MovieWeb App is a simple, Flask-based application designed to manage and display
 - **Update and Delete Movies**: Modify or remove movies from a user's favorites.
 - **Dynamic Data Display**: Fetch and display movies with detailed information like IMDb ratings and posters.
 - **Responsive Design**: Clean and user-friendly interface styled with Bootstrap.
-
+- **RESTful API for programmatic access**
+- 
 ## Installation ⚙
 
 ### Prerequisites
@@ -76,12 +77,26 @@ MovieWeb_App/
 │   ├── models.py                  # ORM models
 │   ├── movie_fetcher.py           # OMDb API integration
 │   └── sqlite_data_manager.py     # SQLite data manager implementation   
+├── helpers/
+│   ├── __init__.py                # Package initializer
+│   ├── api_helpers.py             # Helper functions for API-related tasks
+│   ├── html_helpers.py            # Helper functions for HTML rendering
+│   └── logger.py                  # Logger configuration module
+├── routes/
+│   ├── __init__.py                # Package initializer
+│   ├── api_routes.py              # API routes for managing movies and users
+│   ├── error_handlers.py          # Error handler routes
+│   └── html_routes.py             # HTML routes for managing user interface
+├── decorators/
+│   ├── api_decorators.py          # API-specific decorators
+│   ├── html_decorators.py         # HTML-specific decorators
+│   └── shared_decorators.py       # Common/shared decorators
 ├── static/
 │   ├── form-validation.js         # Client-side form validation
 │   └── style.css                  # Custom styles
 ├── storage/
 │   ├── __init__.py                # Package initializer
-│   └── movieweb.sqlite           # SQLite database file
+│   └── movieweb.sqlite            # SQLite database file
 ├── templates/
 │   ├── 404.html                   # Page not found
 │   ├── 500.html                   # Internal server error
@@ -95,8 +110,10 @@ MovieWeb_App/
 │   └── users.html                 # Users list page
 ├── app.log                        # Application logs
 ├── app.py                         # Main application file
+├── initial.py                     # Initialization and app setup file
 ├── README.md                      # Project documentation
 └── requirements.txt               # Dependencies
+
 ```
 ## Technologies Used 💻
 

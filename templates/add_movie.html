@@ -7,7 +7,7 @@
     <h1 class="mb-4">Add Movie to Your List</h1>
 
     <!-- Movie form -->
-    <form method="post" action="{{ url_for('add_movie', user_id=user_id) }}" class="needs-validation" novalidate>
+    <form method="post" action="{{ url_for('html_routes.add_movie', user_id=user_id) }}" class="needs-validation" novalidate>
         <div class="form-group">
             <label for="movie_name" class="form-label">Movie Name:</label>
             <input
@@ -24,7 +24,7 @@
         <button type="submit" class="btn btn-primary">
             <i class="fas fa-plus-circle"></i> Add Movie
         </button>
-        <a href="{{ url_for('user_movies', user_id=user_id) }}" class="btn btn-secondary ml-2">Back to Movie List</a>
+        <a href="{{ url_for('html_routes.user_movies', user_id=user_id) }}" class="btn btn-secondary ml-2">Back to Movie List</a>
     </form>
     <br>
 </div>
