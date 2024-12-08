@@ -19,7 +19,8 @@ MovieWeb App is a simple, Flask-based application designed to manage and display
 - **Update and Delete Movies**: Modify or remove movies from a user's favorites.
 - **Dynamic Data Display**: Fetch and display movies with detailed information like IMDb ratings and posters.
 - **Responsive Design**: Clean and user-friendly interface styled with Bootstrap.
-
+- **RESTful API for programmatic access**
+- 
 ## Installation ⚙
 
 ### Prerequisites
@@ -86,6 +87,10 @@ MovieWeb_App/
 │   ├── api_routes.py              # API routes for managing movies and users
 │   ├── error_handlers.py          # Error handler routes
 │   └── html_routes.py             # HTML routes for managing user interface
+├── decorators/
+│   ├── api_decorators.py          # API-specific decorators
+│   ├── html_decorators.py         # HTML-specific decorators
+│   └── shared_decorators.py       # Common/shared decorators
 ├── static/
 │   ├── form-validation.js         # Client-side form validation
 │   └── style.css                  # Custom styles
