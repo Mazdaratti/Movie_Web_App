@@ -24,8 +24,7 @@ def handle_api_errors():
         @wraps(func)
         def wrapper(*args, **kwargs):
             try:
-                result = func(*args, **kwargs)
-                return result
+                return func(*args, **kwargs)
             except Exception as e:
                 logger.error(f"Error in {func.__name__}: {str(e)}")
                 return create_error_response(message="An unexpected error occurred."), 500
