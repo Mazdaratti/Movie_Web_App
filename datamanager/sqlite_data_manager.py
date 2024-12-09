@@ -9,6 +9,7 @@ Classes:
 from datamanager.data_manager import DataManagerInterface
 from datamanager.models import db, User, Movie, UserMovies
 from datamanager.movie_fetcher import MovieInfoDownloader, APIError
+from sqlalchemy.exc import IntegrityError
 
 
 class SQLiteDataManager(DataManagerInterface):
@@ -59,9 +60,7 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary containing a success or error message.
         """
         try:
-            existing_user = User.query.filter_by(name=user_name).first()
-
-            if existing_user:
+            if User.query.filter_by(name=user_name).first():
                 return {"error": f"User with the name '{user_name}' already exists."}
 
             new_user = User(name=user_name)
@@ -76,7 +75,7 @@ class SQLiteDataManager(DataManagerInterface):
     def delete_user(self, user_id):
         """
         Deletes a user and their associated movies from the database.
-
+        If a movie is associated only with this user, it is also deleted from the database.
         Args:
             user_id (int): ID of the user to be deleted.
 
@@ -84,9 +83,22 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary with a success or error message.
         """
         try:
-            if not (user := self.get_user_by_id(user_id)):
+            user = self.get_user_by_id(user_id)
+            if not user:
                 return {"error": f"User with ID {user_id} not found"}
 
+            user_movies = UserMovies.query.filter_by(user_id=user_id).all()
+
+            # Iterate through user's movies and check for other associations
+            for user_movie in user_movies:
+                movie_id = user_movie.movie_id
+
+                # If no other associations exist, delete the movie
+                if not UserMovies.query.filter(UserMovies.movie_id == movie_id,
+                                               UserMovies.user_id != user_id).first():
+                    Movie.query.filter_by(id=movie_id).delete()
+
+            # Delete all movie associations for this user
             UserMovies.query.filter_by(user_id=user_id).delete()
 
             self.db.session.delete(user)
@@ -108,8 +120,7 @@ class SQLiteDataManager(DataManagerInterface):
             UserMovies or None: UserMovies object if found, else None.
         """
         try:
-            user_movie = UserMovies.query.get(user_movie_id)
-            return user_movie
+            return UserMovies.query.get(user_movie_id)
         except Exception as e:
             self.db.session.rollback()
             print(f"Error fetching movie by ID: {e}")
@@ -157,6 +168,20 @@ class SQLiteDataManager(DataManagerInterface):
             print(f"Error fetching user movies: {str(e)}")
             return []
 
+    @staticmethod
+    def is_movie_in_user_list(user_id, user_movie_id):
+        """
+        Checks if a specific movie is in the user's collection.
+
+        Args:
+            user_id (int): The ID of the user.
+            user_movie_id (int): The ID of the movie.
+
+        Returns:
+            bool: True if the movie is in the user's collection, False otherwise.
+        """
+        return UserMovies.query.filter_by(user_id=user_id, id=user_movie_id).first()
+
     def get_movie_by_id(self, movie_id):
         """
         Fetches a movie by its ID from the database.
@@ -168,8 +193,7 @@ class SQLiteDataManager(DataManagerInterface):
             Movie or None: Movie object if found, else None.
         """
         try:
-            movie = Movie.query.get(movie_id)
-            return movie
+            return Movie.query.get(movie_id)
         except Exception as e:
             self.db.session.rollback()
             print(f"Error fetching movie by ID: {str(e)}")
@@ -189,10 +213,6 @@ class SQLiteDataManager(DataManagerInterface):
         """
         Adds a movie to a specific user's collection. If the movie doesn't exist, fetches it from OMDb.
 
-        If the movie already exists in the database, it associates the movie with the user.
-        The user can add their own title, rating, and notes, while default values are
-        fetched from OMDb.
-
         Args:
             user_id (int): The ID of the user adding the movie.
             movie_name (str): The name of the movie to be added.
@@ -201,52 +221,61 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary containing a success or error message.
         """
         try:
-            existing_movie = Movie.query.filter_by(name=movie_name).first()
-            user = self.get_user_by_id(user_id)
+            # Check if the user exists
+            if not self.get_user_by_id(user_id):
+                return {"error": f"User with ID {user_id} not found."}
 
-            if existing_movie:
-                existing_user_movie = UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first()
-                if existing_user_movie:
+            # Check if the movie already exists (case-insensitive)
+            if existing_movie := Movie.query.filter(Movie.name.ilike(movie_name)).first():
+                # Check if the movie is already in the user's collection
+                if UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first():
                     return {"error": f"You already have the movie '{movie_name}' in your collection!"}
-                else:
-                    association = UserMovies(
-                        user_id=user_id,
-                        movie_id=existing_movie.id,
-                        user_title=existing_movie.name
-                    )
-                    self.db.session.add(association)
-                    self.db.session.commit()
-                    return {"success": f"Movie '{movie_name}' was successfully added to your collection!"}
 
-            else:
-                movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
-
-                new_movie = Movie(
-                    name=movie_data.get('name', movie_name),
-                    director=movie_data.get('director', None),
-                    year=movie_data.get('year', None),
-                    rating=movie_data.get('rating', None),
-                    poster=movie_data.get('poster', None),
-                    imdb_link=movie_data.get('imdb_link', None)
-                )
-                self.db.session.add(new_movie)
-                self.db.session.commit()
-
+                # Associate existing movie with the user
                 association = UserMovies(
                     user_id=user_id,
-                    movie_id=new_movie.id,
-                    user_title=new_movie.name
+                    movie_id=existing_movie.id,
+                    user_title=existing_movie.name
                 )
                 self.db.session.add(association)
                 self.db.session.commit()
+                return {"success": f"Movie '{movie_name}' was successfully added to your collection!"}
 
-                return {"success": f"Movie '{movie_data['name']}' was successfully added to user '{user.name}'."}
+            # Fetch movie data from OMDb
+            movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
 
+            # Add new movie to the database
+            new_movie = Movie(
+                name=movie_data.get('name', movie_name),
+                director=movie_data.get('director', None),
+                year=movie_data.get('year', None),
+                rating=movie_data.get('rating', None),
+                poster=movie_data.get('poster', None),
+                imdb_link=movie_data.get('imdb_link', None)
+            )
+            self.db.session.add(new_movie)
+            self.db.session.commit()
+
+            # Associate the new movie with the user
+            association = UserMovies(
+                user_id=user_id,
+                movie_id=new_movie.id,
+                user_title=new_movie.name
+            )
+            self.db.session.add(association)
+            self.db.session.commit()
+
+            return {"success": f"Movie '{movie_data['name']}' was successfully added to your collection!"}
+
+        except IntegrityError as e:
+            self.db.session.rollback()
+            return {"error": f"Failed to add movie: A movie with the name '{movie_name}' already exists!"}
         except APIError as e:
+            self.db.session.rollback()
             return {"error": f"Failed to fetch movie data: {str(e)}"}
         except Exception as e:
             self.db.session.rollback()
-            return {"error": f"An error occurred: {str(e)}"}
+            return {"error": f"An unexpected error occurred: {str(e)}"}
 
     def update_movie(self, user_movie_id, updated_details):
         """
@@ -261,7 +290,7 @@ class SQLiteDataManager(DataManagerInterface):
         """
         try:
             if not (user_movie := self.get_user_movie(user_movie_id)):
-                return {"error": "This movie is not in your list."}
+                return {"error": "Movie not found."}
 
             for key, value in updated_details.items():
                 if hasattr(user_movie, key):
@@ -303,11 +332,9 @@ class SQLiteDataManager(DataManagerInterface):
                 self.db.session.commit()
 
             return {
-                "success": f"Movie '{movie.name}' has been successfully removed from your list.",
-                "user_id": user_id
+                "success": f"Movie '{movie.name}' has been successfully removed from your list."
             }
 
         except Exception as e:
             self.db.session.rollback()
             return {"error": f"An error occurred: {str(e)}"}
-

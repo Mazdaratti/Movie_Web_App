@@ -71,8 +71,8 @@ def create_api(data_manager):
         """
 
         data = request.get_json()
-        result = data_manager.add_user(data["name"])
-        if 'error' in result:
+
+        if 'error' in (result := data_manager.add_user(data["name"])):
             return create_error_response(message=result['error']), 400
         return create_success_response(message=result["success"]), 201
 
@@ -88,8 +88,8 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        result = data_manager.delete_user(user_id)
-        if 'error' in result:
+
+        if 'error' in (result := data_manager.delete_user(user_id)):
             return create_error_response(message=result["error"]), 404
         return create_success_response(message=result["success"]), 200
 
@@ -131,8 +131,8 @@ def create_api(data_manager):
         """
 
         data = request.get_json()
-        result = data_manager.add_movie(user_id, data["movie_name"])
-        if 'error' in result:
+
+        if 'error' in (result := data_manager.add_movie(user_id, data["movie_name"])):
             return create_error_response(
                 message=result['error']), 400
         return create_success_response(message=result['success']), 201
@@ -159,8 +159,8 @@ def create_api(data_manager):
         """
 
         data = request.get_json()
-        result = data_manager.update_movie(user_movie_id, data)
-        if 'error' in result:
+
+        if 'error' in (result := data_manager.update_movie(user_movie_id, data)):
             return create_error_response(message=result['error']), 400
         return create_success_response(message=result['success']), 200
 
@@ -176,8 +176,8 @@ def create_api(data_manager):
         Returns:
             Response: JSON response with success or error message.
         """
-        result = data_manager.delete_movie(user_movie_id)
-        if 'error' in result:
+
+        if 'error' in (result := data_manager.delete_movie(user_movie_id)):
             return create_error_response(message=result['error']), 404
         return create_success_response(message=result['success']), 200
 

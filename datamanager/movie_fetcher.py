@@ -72,7 +72,6 @@ class MovieInfoDownloader:
                 f"{self._api_url}?t={title}&apikey={self._api_key}",
                 headers=headers,
                 timeout=10)
-            print('hello')
             response.raise_for_status()
             data = response.json()
 
