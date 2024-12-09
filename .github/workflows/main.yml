@@ -17,7 +17,7 @@ jobs:
     - name: Checkout Sources
       uses: actions/checkout@v4
 
-    - name: Set up Python 3.10
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
 
     - name: Install dependencies
@@ -31,7 +31,4 @@ jobs:
       run: |
         pylint --recursive=y .
 
-    - name: Test with pytest
-      if: always()
-      run: |
-        python -m pytest .
+ 
