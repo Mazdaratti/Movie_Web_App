@@ -6,16 +6,16 @@ Flask app in `app.py`. Each route is responsible for rendering HTML templates
 for different pages of the application.
 
 Routes:
-    - /: Home page that displays recent movies.
-    - /users: Displays a list of all users.
-    - /add_user: Page for adding a new user.
-    - /users/<int:user_id>: Displays a user's movie collection.
-    - /delete_user/<int:user_id>: Deletes a user.
-    - /users/<int:user_id>/add_movie: Adds a movie to a user's collection.
-    - /users/<int:user_id>/update_movie/<int:user_movie_id>: Updates user-specific movie details.
-    - /users/<int:user_id>/delete_movie/<int:user_movie_id>: Deletes a movie from a user's collection.
+- /: Home page that displays recent movies.
+- /users: Displays a list of all users.
+- /add_user: Page for adding a new user.
+- /users/<int:user_id>: Displays a user's movie collection.
+- /delete_user/<int:user_id>: Deletes a user.
+- /users/<int:user_id>/add_movie: Adds a movie to a user's collection.
+- /users/<int:user_id>/update_movie/<int:user_movie_id>: Updates user-specific movie details.
+- /users/<int:user_id>/delete_movie/<int:user_movie_id>: Deletes a movie from a user's collection.
 """
-from flask import Blueprint, render_template, flash, redirect, url_for, request
+from flask import Blueprint, render_template, redirect, url_for, request
 from helpers.html_helpers import flash_message, render_error_page
 from helpers.logger import logger
 from decorators.html_decorators import handle_errors, validate_form, validate_user
@@ -100,11 +100,14 @@ def create_html_route(data_manager):
         the user's movie collection, an internal server error page is displayed.
 
         Args:
-            user_id (int): The unique identifier of the user whose movie collection is to be displayed.
+            user_id (int): The unique identifier of the user
+                            whose movie collection is to be displayed.
 
         Returns:
-            On success: The rendered template (`user_movies.html`) with the user's details and movie collection.
-            On failure: An error page with an appropriate status code (404 if the user is not found, 500 for internal errors).
+            On success: The rendered template (`user_movies.html`) with the user's details and
+                        movie collection.
+            On failure: An error page with an appropriate status code (404 if the user is not found,
+                        500 for internal errors).
         """
         user = data_manager.get_user_by_id(user_id)
         movies = data_manager.get_user_movies(user_id)
@@ -116,7 +119,8 @@ def create_html_route(data_manager):
         """
         Deletes a user from the database.
 
-        Deletes the user identified by user_id from the database and redirects to the user list page.
+        Deletes the user identified by user_id from the database and
+        redirects to the user list page.
 
         Args:
             user_id (int): The ID of the user to be deleted.
@@ -182,7 +186,8 @@ def create_html_route(data_manager):
             On error: Render the error page or redirect with an error message.
         """
 
-        if not (user_movie := data_manager.is_movie_in_user_list(user_id=user_id, user_movie_id=user_movie_id)):
+        if not (user_movie := data_manager.is_movie_in_user_list(
+                user_id=user_id, user_movie_id=user_movie_id)):
             flash_message("This movie is not in your list.", "error")
             return redirect(url_for('html_routes.user_movies', user_id=user_id))
 

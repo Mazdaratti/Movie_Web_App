@@ -12,7 +12,7 @@ from flask import render_template
 from flask import current_app
 
 
-def page_not_found(e):
+def page_not_found():
     """
     Handles 404 Not Found errors.
     Renders a custom 404 error page.

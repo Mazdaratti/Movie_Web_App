@@ -83,7 +83,8 @@ class UserMovies(BaseModel):
         id (int): The unique identifier for the user-movie association.
         user_id (int): The foreign key referencing the user.
         movie_id (int): The foreign key referencing the movie.
-        user_title (str): The custom title of the movie defined by the user. Defaults to the movie's original name.
+        user_title (str): The custom title of the movie defined by the user.
+                          Defaults to the movie's original name.
         user_rating (float): The rating given by the user. Defaults to the movie's rating.
         user_notes (str): Notes about the movie added by the user.
         added_at (datetime): The timestamp when the user added the movie to their list.

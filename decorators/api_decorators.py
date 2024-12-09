@@ -60,7 +60,7 @@ def validate_json(required_keys=None):
             except BadRequest as e:
                 logger.error(
                     f"BadRequest in {func.__name__}: Invalid JSON format: {str(e)}")
-                return create_error_response(message=f"Invalid JSON format"), 400
+                return create_error_response(message="Invalid JSON format"), 400
             except Exception as e:
                 logger.error(f"Unexpected error in {func.__name__}: {str(e)}")
                 return create_error_response(
