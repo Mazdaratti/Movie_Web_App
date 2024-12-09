@@ -4,3 +4,4 @@ sqlalchemy
 Jinja2
 requests
 python-dotenv
+pylint
