@@ -272,8 +272,6 @@ class SQLiteDataManager(DataManagerInterface):
                 user_title=new_movie.name
             )
             self.db.session.add(association)
-
-            # Commit all changes at once
             self.db.session.commit()
 
             return {"success": f"Movie '{movie_data['name']}' was successfully added to user '{user.name}'."}
