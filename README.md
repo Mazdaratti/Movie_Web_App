@@ -110,7 +110,7 @@ MovieWeb_App/
 │   └── users.html                 # Users list page
 ├── app.log                        # Application logs
 ├── app.py                         # Main application file
-├── initial.py                     # Initialization and app setup file
+├── initial.py                     # Creating of database and tables
 ├── README.md                      # Project documentation
 └── requirements.txt               # Dependencies
 

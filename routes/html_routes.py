@@ -81,9 +81,8 @@ def create_html_route(data_manager):
             return render_template('add_user.html')
 
         user_name = request.form['name']
-        result = data_manager.add_user(user_name)
 
-        if 'error' in result:
+        if 'error' in (result := data_manager.add_user(user_name)):
             flash_message(result['error'], 'error')
         else:
             flash_message(result['success'], 'success')
@@ -126,9 +125,8 @@ def create_html_route(data_manager):
             On success: Redirects to the users list page with a success message.
             On failure: Renders an error page with the appropriate message.
         """
-        result = data_manager.delete_user(user_id)
 
-        if "error" in result:
+        if "error" in (result := data_manager.delete_user(user_id)):
             logger.error(f"Error in delete_user: {result['error']}")
             return render_error_page(404, result["error"])
 
@@ -158,8 +156,7 @@ def create_html_route(data_manager):
         if request.method == 'GET':
             return render_template('add_movie.html', user_id=user_id)
         movie_name = request.form.get('movie_name')
-        result = data_manager.add_movie(user_id, movie_name)
-        if 'error' in result:
+        if 'error' in (result := data_manager.add_movie(user_id, movie_name)):
             flash_message(result['error'], 'error')
         else:
             flash_message(result['success'], 'success')
@@ -184,8 +181,8 @@ def create_html_route(data_manager):
             On success: Redirect to the user's movie list with a success message.
             On error: Render the error page or redirect with an error message.
         """
-        user_movie = data_manager.is_movie_in_user_list(user_id=user_id, user_movie_id=user_movie_id)
-        if not user_movie:
+
+        if not (user_movie := data_manager.is_movie_in_user_list(user_id=user_id, user_movie_id=user_movie_id)):
             flash_message("This movie is not in your list.", "error")
             return redirect(url_for('html_routes.user_movies', user_id=user_id))
 
@@ -197,9 +194,7 @@ def create_html_route(data_manager):
         user_rating = updated_details.get('user_rating')
         updated_details['user_rating'] = user_rating if user_rating else None
 
-        result = data_manager.update_movie(user_movie_id, updated_details)
-
-        if "success" in result:
+        if "success" in (result := data_manager.update_movie(user_movie_id, updated_details)):
             flash_message(result["success"], "success")
             return redirect(url_for('html_routes.user_movies', user_id=user_id))
         flash_message(result["error"], "error")
@@ -220,13 +215,12 @@ def create_html_route(data_manager):
             On success: Redirect to the user's movie list with a success message.
             On error: Render the error page with an error message.
         """
-        result = data_manager.delete_movie(user_movie_id)
 
-        if "success" in result:
+        if "success" in (result := data_manager.delete_movie(user_movie_id)):
             flash_message(result['success'], "success")
             return redirect(url_for('html_routes.user_movies', user_id=user_id))
-        else:
-            flash_message(result['error'], "error")
-            return render_error_page(500, result["error"])
+
+        flash_message(result['error'], "error")
+        return render_error_page(500, result["error"])
 
     return html_routes

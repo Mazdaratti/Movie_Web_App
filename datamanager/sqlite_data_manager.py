@@ -60,9 +60,7 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary containing a success or error message.
         """
         try:
-            existing_user = User.query.filter_by(name=user_name).first()
-
-            if existing_user:
+            if User.query.filter_by(name=user_name).first():
                 return {"error": f"User with the name '{user_name}' already exists."}
 
             new_user = User(name=user_name)
@@ -85,7 +83,8 @@ class SQLiteDataManager(DataManagerInterface):
             dict: A dictionary with a success or error message.
         """
         try:
-            if not (user := self.get_user_by_id(user_id)):
+            user = self.get_user_by_id(user_id)
+            if not user:
                 return {"error": f"User with ID {user_id} not found"}
 
             user_movies = UserMovies.query.filter_by(user_id=user_id).all()
@@ -94,12 +93,9 @@ class SQLiteDataManager(DataManagerInterface):
             for user_movie in user_movies:
                 movie_id = user_movie.movie_id
 
-                # Check if the movie is associated with other users
-                other_associations = UserMovies.query.filter(UserMovies.movie_id == movie_id,
-                                                             UserMovies.user_id != user_id).first()
-
                 # If no other associations exist, delete the movie
-                if not other_associations:
+                if not UserMovies.query.filter(UserMovies.movie_id == movie_id,
+                                               UserMovies.user_id != user_id).first():
                     Movie.query.filter_by(id=movie_id).delete()
 
             # Delete all movie associations for this user
@@ -124,8 +120,7 @@ class SQLiteDataManager(DataManagerInterface):
             UserMovies or None: UserMovies object if found, else None.
         """
         try:
-            user_movie = UserMovies.query.get(user_movie_id)
-            return user_movie
+            return UserMovies.query.get(user_movie_id)
         except Exception as e:
             self.db.session.rollback()
             print(f"Error fetching movie by ID: {e}")
@@ -198,8 +193,7 @@ class SQLiteDataManager(DataManagerInterface):
             Movie or None: Movie object if found, else None.
         """
         try:
-            movie = Movie.query.get(movie_id)
-            return movie
+            return Movie.query.get(movie_id)
         except Exception as e:
             self.db.session.rollback()
             print(f"Error fetching movie by ID: {str(e)}")
@@ -228,16 +222,13 @@ class SQLiteDataManager(DataManagerInterface):
         """
         try:
             # Check if the user exists
-            user = self.get_user_by_id(user_id)
-            if not user:
+            if not self.get_user_by_id(user_id):
                 return {"error": f"User with ID {user_id} not found."}
 
-            # Check if the movie already exists
-            existing_movie = Movie.query.filter_by(name=movie_name).first()
-            if existing_movie:
+            # Check if the movie already exists (case-insensitive)
+            if existing_movie := Movie.query.filter(Movie.name.ilike(movie_name)).first():
                 # Check if the movie is already in the user's collection
-                existing_user_movie = UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first()
-                if existing_user_movie:
+                if UserMovies.query.filter_by(user_id=user_id, movie_id=existing_movie.id).first():
                     return {"error": f"You already have the movie '{movie_name}' in your collection!"}
 
                 # Associate existing movie with the user
@@ -274,11 +265,11 @@ class SQLiteDataManager(DataManagerInterface):
             self.db.session.add(association)
             self.db.session.commit()
 
-            return {"success": f"Movie '{movie_data['name']}' was successfully added to user '{user.name}'."}
+            return {"success": f"Movie '{movie_data['name']}' was successfully added to your collection!"}
 
         except IntegrityError as e:
             self.db.session.rollback()
-            return {"error": f"Failed to add movie: A movie with the name '{movie_name}' already exists."}
+            return {"error": f"Failed to add movie: A movie with the name '{movie_name}' already exists!"}
         except APIError as e:
             self.db.session.rollback()
             return {"error": f"Failed to fetch movie data: {str(e)}"}
@@ -341,8 +332,7 @@ class SQLiteDataManager(DataManagerInterface):
                 self.db.session.commit()
 
             return {
-                "success": f"Movie '{movie.name}' has been successfully removed from your list.",
-                "user_id": user_id
+                "success": f"Movie '{movie.name}' has been successfully removed from your list."
             }
 
         except Exception as e:
