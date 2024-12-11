@@ -5,6 +5,7 @@ This module defines the database models for the MovieWeb App, including:
 - UserMovies: Represents the association between users and movies,
   allowing per-user customizations like user-defined title, rating, and notes.
 """
+from datetime import datetime
 import validators
 from sqlalchemy.orm import validates
 from flask_sqlalchemy import SQLAlchemy
@@ -98,6 +99,26 @@ class Movie(BaseModel):
         """
         if value and not validators.url(value):
             raise ValueError(f"{key} must be a valid URL.")
+        return value
+
+    @validates('year')
+    def validate_year(self, key, value):
+        """
+        Validates the year field to ensure it is logical.
+
+        Args:
+            key (str): The name of the field being validated.
+            value (int): The value being assigned to the field.
+
+        Returns:
+            int: The validated year.
+
+        Raises:
+            ValueError: If the year is not between 1888 and the current year.
+        """
+        current_year = datetime.now().year
+        if value < 1888 or value > current_year:
+            raise ValueError(f"{key} must be between 1888 and {current_year}.")
         return value
 
 
