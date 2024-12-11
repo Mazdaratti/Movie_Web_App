@@ -5,7 +5,8 @@ This module defines the database models for the MovieWeb App, including:
 - UserMovies: Represents the association between users and movies,
   allowing per-user customizations like user-defined title, rating, and notes.
 """
-
+import validators
+from sqlalchemy.orm import validates
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -79,6 +80,25 @@ class Movie(BaseModel):
     rating = db.Column(db.Float)
     poster = db.Column(db.String(255))
     imdb_link = db.Column(db.String(255))
+
+    @validates('poster', 'imdb_link')
+    def validate_url(self, key, value):
+        """
+        Validates that the given URL fields (poster, imdb_link) contain valid URLs.
+
+        Args:
+            key (str): The name of the field being validated.
+            value (str): The value being assigned to the field.
+
+        Returns:
+            str: The validated URL if it is valid.
+
+        Raises:
+            ValueError: If the URL is not valid.
+        """
+        if value and not validators.url(value):
+            raise ValueError(f"{key} must be a valid URL.")
+        return value
 
 
 class UserMovies(BaseModel):
