@@ -17,20 +17,29 @@ class BaseModel(db.Model):
     """
     __abstract__ = True  # Mark this class as abstract; it won't be created as a table.
 
-    def to_dict(self, include_relationships=False):
+    def to_dict(self, include_relationships=False, _seen=None):
         """
         Converts all column attributes of the model into a dictionary.
         Optionally includes related objects.
         """
-        result = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        if _seen is None:
+            _seen = set()
 
+            # Prevent circular references
+        obj_id = id(self)
+        if obj_id in _seen:
+            return {'id': self.id}  # Fallback to a basic representation
+        _seen.add(obj_id)
+        result = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        # Serialize relationships
         if include_relationships:
             for relationship in self.__mapper__.relationships:
                 related_value = getattr(self, relationship.key)
                 if isinstance(related_value, list):  # For one-to-many relationships
-                    result[relationship.key] = [item.to_dict() for item in related_value]
+                    result[relationship.key] = [
+                        item.to_dict(include_relationships, _seen) for item in related_value]
                 elif related_value:  # For one-to-one or many-to-one relationships
-                    result[relationship.key] = related_value.to_dict()
+                    result[relationship.key] = related_value.to_dict(include_relationships, _seen)
         return result
 
 

@@ -35,7 +35,8 @@ def create_api(data_manager):
             Response: JSON response containing a list of all users or an error message.
         """
         users = data_manager.get_all_users()
-        return create_success_response(data=[user.to_dict() for user in users]), 200
+        return create_success_response(
+            data=[user.to_dict(include_relationships=False) for user in users]), 200
 
     @api.route('/users/<int:user_id>', methods=['GET'])
     @handle_api_errors()
