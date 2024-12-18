@@ -88,21 +88,21 @@ class SQLiteDataManager(DataManagerInterface):
             if not user:
                 return {"error": f"User with ID {user_id} not found"}
 
-            user_movies = UserMovies.query.filter_by(user_id=user_id).all()
-
-            # Iterate through user's movies and check for other associations
-            for user_movie in user_movies:
-                movie_id = user_movie.movie_id
-
-                # If no other associations exist, delete the movie
-                if not UserMovies.query.filter(UserMovies.movie_id == movie_id,
-                                               UserMovies.user_id != user_id).first():
-                    Movie.query.filter_by(id=movie_id).delete()
-
-            # Delete all movie associations for this user
-            UserMovies.query.filter_by(user_id=user_id).delete()
-
+                # Delete the user (this will trigger cascading deletions for associated user_movies)
             self.db.session.delete(user)
+            self.db.session.commit()
+
+            # Check and delete movies with no remaining associations
+            movies_with_no_associations = (
+                Movie.query
+                .outerjoin(UserMovies, UserMovies.movie_id == Movie.id)
+                .filter(UserMovies.id == None)  # Find movies with no associations
+                .all()
+            )
+
+            for movie in movies_with_no_associations:
+                self.db.session.delete(movie)
+
             self.db.session.commit()
 
             return {"success": f"User with ID {user_id} "
