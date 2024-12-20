@@ -201,8 +201,9 @@ def create_html_route(data_manager):
 
         if "success" in (result := data_manager.update_movie(user_movie_id, updated_details)):
             flash_message(result["success"], "success")
-            return redirect(url_for('html_routes.user_movies', user_id=user_id))
-        flash_message(result["error"], "error")
+        else:
+            flash_message(result["error"], "error")
+        return redirect(url_for('html_routes.user_movies', user_id=user_id))
 
     @html_routes.route('/users/<int:user_id>/delete_movie/<int:user_movie_id>', methods=['POST'])
     @handle_errors()
