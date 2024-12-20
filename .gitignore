@@ -163,4 +163,5 @@ cython_debug/
 movieweb.sqlite-journal
 movieweb.sqlite
 .gitattributes
-.draft
+.draft.py
+.initial.py
