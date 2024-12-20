@@ -88,7 +88,7 @@ class SQLiteDataManager(DataManagerInterface):
             if not user:
                 return {"error": f"User with ID {user_id} not found"}
 
-                # Delete the user (this will trigger cascading deletions for associated user_movies)
+            # Delete the user (this will trigger cascading deletions for associated user_movies)
             self.db.session.delete(user)
             self.db.session.commit()
 
@@ -96,7 +96,7 @@ class SQLiteDataManager(DataManagerInterface):
             movies_with_no_associations = (
                 Movie.query
                 .outerjoin(UserMovies, UserMovies.movie_id == Movie.id)
-                .filter(UserMovies.id == None)  # Find movies with no associations
+                .filter(UserMovies.id == None)
                 .all()
             )
 
