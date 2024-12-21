@@ -142,31 +142,16 @@ class SQLiteDataManager(DataManagerInterface):
         """
         try:
             user_movies = (
-                db.session.query(UserMovies, Movie)
-                .join(Movie, UserMovies.movie_id == Movie.id)
+                db.session.query(UserMovies)
+                .join(Movie)
                 .filter(UserMovies.user_id == user_id)
                 .all()
             )
 
-            result = []
-            for user_movie, movie in user_movies:
-                result.append({
-                    "id": movie.id,
-                    "user_movie_id": user_movie.id,
-                    "name": user_movie.user_title if user_movie.user_title else movie.name,
-                    "year": movie.year,
-                    "director": movie.director,
-                    "poster": movie.poster,
-                    "imdb_link": movie.imdb_link,
-                    "rating": movie.rating,
-                    "user_title": user_movie.user_title,
-                    "user_rating": user_movie.user_rating,
-                    "user_notes": user_movie.user_notes,
-                    "added_at": user_movie.added_at
-                })
-
-            return result
-
+            return [
+                {**user_movie.movie.to_dict(), **user_movie.to_dict()}
+                for user_movie in user_movies
+            ]
         except Exception as e:
             self.db.session.rollback()
             print(f"Error fetching user movies: {str(e)}")
