@@ -229,36 +229,25 @@ class SQLiteDataManager(DataManagerInterface):
                     movie_id=existing_movie.id,
                     user_title=existing_movie.name
                 )
-                self.db.session.add(association)
+            else:
+                # Fetch movie data from OMDb
+                movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
+
+                # Add new movie to the database
+                new_movie = Movie(**movie_data)
+                self.db.session.add(new_movie)
                 self.db.session.commit()
-                return {"success": f"Movie '{movie_name}' was successfully "
-                                   f"added to your list!"}
 
-            # Fetch movie data from OMDb
-            movie_data = MovieInfoDownloader().fetch_movie_data(movie_name)
-
-            # Add new movie to the database
-            new_movie = Movie(
-                name=movie_data.get('name', movie_name),
-                director=movie_data.get('director', None),
-                year=movie_data.get('year', None),
-                rating=movie_data.get('rating', None),
-                poster=movie_data.get('poster', None),
-                imdb_link=movie_data.get('imdb_link', None)
-            )
-            self.db.session.add(new_movie)
-            self.db.session.commit()
-
-            # Associate the new movie with the user
-            association = UserMovies(
-                user_id=user_id,
-                movie_id=new_movie.id,
-                user_title=new_movie.name
-            )
+                # Associate the new movie with the user
+                association = UserMovies(
+                    user_id=user_id,
+                    movie_id=new_movie.id,
+                    user_title=new_movie.name
+                )
             self.db.session.add(association)
             self.db.session.commit()
 
-            return {"success": f"Movie '{movie_data['name']}' was successfully "
+            return {"success": f"Movie '{movie_name}' was successfully "
                                f"added to your list!"}
 
         except IntegrityError as e:
