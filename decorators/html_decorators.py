@@ -8,6 +8,7 @@ Decorators included:
 """
 from functools import wraps
 from flask import render_template, redirect, request
+from sqlalchemy.exc import SQLAlchemyError
 from helpers.logger import logger
 from helpers.html_helpers import flash_message, render_error_page
 
@@ -30,11 +31,18 @@ def handle_errors():
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except SQLAlchemyError as db_error:
+                logger.error(f"Database error in {func.__name__}: {str(db_error)}")
+                # Render an error page for database-specific errors
+                return render_template(
+                    "error.html", error_message="A database error occurred. Please try again later."
+                ), 500
             except Exception as e:
-                logger.error(f"Error in {func.__name__}: {str(e)}")
+                logger.error(f"Unhandled error in {func.__name__}: {str(e)}")
                 # Render a generic error page for unhandled exceptions
                 return render_template(
-                    "error.html", error_message="An unexpected error occurred."), 500
+                    "error.html", error_message="An unexpected error occurred."
+                ), 500
 
         return wrapper
 
