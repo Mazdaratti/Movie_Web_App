@@ -7,10 +7,9 @@ Classes:
     SQLiteDataManager (DataManagerInterface):
                       A class that handles user and movie data in an SQLite database.
 """
-from sqlalchemy.exc import IntegrityError
 from datamanager.data_manager import DataManagerInterface
 from datamanager.models import db, User, Movie, UserMovies
-from datamanager.movie_fetcher import MovieInfoDownloader, APIError
+from datamanager.movie_fetcher import MovieInfoDownloader
 from decorators.db_decorators import transactional
 
 
