@@ -15,6 +15,7 @@ Dependencies:
 """
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError
+from datamanager.models import User, Movie, UserMovies
 from datamanager.movie_fetcher import APIError
 from helpers.logger import logger
 
@@ -53,6 +54,78 @@ def transactional(session):
                 session.rollback()
                 logger.error(f"Unexpected error in {func.__name__}: {str(e)}")
                 raise e
+
+        return wrapper
+
+    return decorator
+
+
+def validate_user(session):
+    """
+    Decorator to validate if a user exists in the database.
+
+    Args:
+        session (SQLAlchemy session): The database session to use for querying.
+
+    Returns:
+        function: The wrapped function, which will raise an error
+                  if the user does not exist.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(user_id, *args, **kwargs):
+            if not session.query(User).get(user_id):
+                return {"error": f"User with ID {user_id} does not exist."}
+            return func(user_id, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def validate_movie(session):
+    """
+    Decorator to validate if a movie exists in the database.
+
+    Args:
+        session (SQLAlchemy session): The database session to use for querying.
+
+    Returns:
+        function: The wrapped function, which will raise an error
+                  if the movie does not exist.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(movie_id, *args, **kwargs):
+            if not session.query(Movie).get(movie_id):
+                return {"error": f"Movie with ID {movie_id} does not exist."}
+            return func(movie_id, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def validate_user_movie(session):
+    """
+    Decorator to validate if a specific movie is in the user's list.
+
+    Args:
+        session (SQLAlchemy session): The database session to use for querying.
+
+    Returns:
+        function: The wrapped function, which will raise an error
+                  if the movie is not in the user's list.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(user_id, movie_id, *args, **kwargs):
+            if not session.query(UserMovies).filter_by(user_id=user_id, movie_id=movie_id).first():
+                return {"error": f"Movie with ID {movie_id} is not in the user's list."}
+            return func(user_id, movie_id, *args, **kwargs)
 
         return wrapper
 
