@@ -20,7 +20,9 @@
                             <img src="{{ movie.poster }}" class="card-img-top" alt="{{ movie.name }}">
                         {% endif %}
                         <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">{{ movie.name }}</h5>
+                            <h5 class="card-title">
+                                {{movie.user_title if movie.user_title else movie.name}}
+                            </h5>
                             <div class="card-text mt-auto">
                                 {% if movie.year %} <p><strong>Year:</strong> {{ movie.year }}</p> {% endif %}
                                 {% if movie.director %} <p><strong>Director:</strong> {{ movie.director }}</p> {% endif %}
@@ -34,11 +36,11 @@
                                 <i class="fas fa-external-link-alt"></i> IMDb
                             </a>
                             <div>
-                                <a href="{{ url_for('html_routes.update_movie', user_id=user.id, user_movie_id=movie.user_movie_id) }}"
+                                <a href="{{ url_for('html_routes.update_movie', user_id=user.id, user_movie_id=movie.id) }}"
                                    class="btn btn-warning btn-sm" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ url_for('html_routes.delete_movie', user_id=user.id, user_movie_id=movie.user_movie_id) }}"
+                                <form action="{{ url_for('html_routes.delete_movie', user_id=user.id, user_movie_id=movie.id) }}"
                                       method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-danger btn-sm" title="Delete"
                                             onclick="return confirm('Are you sure you want to delete this movie?')">

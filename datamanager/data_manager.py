@@ -55,11 +55,11 @@ class DataManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def add_user(self, user):
+    def add_user(self, user_name):
         """
         Add a new user to the data store.
 
-        :param user: A dictionary or object containing user details.
+        :param user_name: The name of the user to be added.
         :return: The added user record or a success indicator.
         """
         pass
@@ -84,12 +84,12 @@ class DataManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def add_movie(self, user_id, movie_details):
+    def add_movie(self, user_id, movie_name):
         """
         Add a new movie associated with a specific user.
 
         :param user_id: The ID of the user adding the movie.
-        :param movie_details: A dictionary or object containing movie details.
+        :param movie_name: The name of the movie to add.
         :return: The added movie record or a success indicator.
         """
         pass

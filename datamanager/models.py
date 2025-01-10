@@ -58,6 +58,13 @@ class User(BaseModel):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
 
+    # Relationship to UserMovies with cascading delete behavior
+    user_movies = db.relationship(
+        'UserMovies',
+        back_populates='user',
+        cascade="all, delete-orphan"
+    )
+
 
 class Movie(BaseModel):
     """
@@ -81,6 +88,13 @@ class Movie(BaseModel):
     rating = db.Column(db.Float)
     poster = db.Column(db.String(255))
     imdb_link = db.Column(db.String(255))
+
+    # Relationship to UserMovies with cascading delete behavior
+    user_movies = db.relationship(
+        'UserMovies',
+        back_populates='movie',
+        cascade="all, delete-orphan"
+    )
 
     @validates('poster', 'imdb_link')
     def validate_url(self, key, value):
@@ -142,13 +156,18 @@ class UserMovies(BaseModel):
     __tablename__ = 'user_movies'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    movie_id = db.Column(db.Integer, db.ForeignKey('movies.id', ondelete="CASCADE"), nullable=False)
     user_title = db.Column(db.String(100))
     user_rating = db.Column(db.Float)
     user_notes = db.Column(db.Text)
     added_at = db.Column(db.DateTime, default=db.func.now())
 
-    # Define relationships for easier querying
-    user = db.relationship('User', backref=db.backref('user_movies', lazy=True))
-    movie = db.relationship('Movie', backref=db.backref('user_movies', lazy=True))
+    # Relationships
+    user = db.relationship('User', back_populates='user_movies')
+    movie = db.relationship('Movie', back_populates='user_movies')
+
+    # Unique constraint to prevent duplicate associations
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'movie_id', name='unique_user_movie'),
+    )
